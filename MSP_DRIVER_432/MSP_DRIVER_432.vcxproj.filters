@@ -36,9 +36,15 @@
     <ClCompile Include="Drivers_Control.c">
       <Filter>Source files</Filter>
     </ClCompile>
+    <ClCompile Include="..\Texas-MSP432-Drivers\Peripherals_drivers\mpu6050.c">
+      <Filter>Source files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Drivers_Control.h">
+      <Filter>Source files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Texas-MSP432-Drivers\Peripherals_drivers\mpu6050.h">
       <Filter>Source files</Filter>
     </ClInclude>
   </ItemGroup>

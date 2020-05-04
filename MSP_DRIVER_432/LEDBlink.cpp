@@ -4,83 +4,97 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <Drivers_Control.h>
+#include "Drivers_Control.h"
+#include "mpu6050.h"
 
 uint8_t RXData[2];
-uint8_t leitura[14];
 uint8_t contador = 1;
 
-void dr_Inicializar_sensor()
-{
-	GPIO_setAsOutputPin(GPIO_PORT_P6, GPIO_PIN1);
-	GPIO_setOutputLowOnPin(GPIO_PORT_P6, GPIO_PIN1);
-	dr_Delay_ms(500);
-	GPIO_setOutputHighOnPin(GPIO_PORT_P6, GPIO_PIN1);
-	dr_Delay_ms(500);
 
-}
+// Definição do endereçamento dos 4 sensores
+mpu_data_t sensor_rho = { .identification = 0, .address = 0x68, .I2C = 0, };
+mpu_data_t sensor_theta1 = { .identification = 1, .address = 0x69, .I2C = 0, };
+mpu_data_t sensor_theta2 = { .identification = 2, .address = 0x68, .I2C = 2, };
+mpu_data_t sensor_theta3 = { .identification = 3, .address = 0x69, .I2C = 2, };
+// tempo de leitura dos quatro sensores estimado em 2,1424ms(sem falhas) -
+// Flags
+uint32_t status_flag_uart = 0;
+
 int main(void)
 {
 
 	WDT_A_holdTimer();
 	/* Pin Config */
 	dr_Leds_sw_init();
-	//	dr_PMAP_configuration();
-		dr_I2C0_pin_config();
+	dr_I2C0_pin_config();
+
 	/* Peripherals Config */
 	dr_Uart_init();
 	dr_I2C_init(0);
 
+	/* Interrupt Config */
 	dr_Uart_interrupt_receive();
 	dr_Interrupt_on();
-	dr_Inicializar_sensor();
-	dr_I2C_Read(0, 0x69, 0x75, &RXData[0]);
-	//Acelerometro mede a resolução +-2g
-	dr_I2C_Write(0, 0x69, 0x1C, 0b00000000);
-	//pequeno filtro digital
-	dr_I2C_Write(0, 0x69, 0x1A, 0b00000001);
-	//liga interrupção dado pronto
-	dr_I2C_Write(0, 0x69, 0x38, 0b00000001);
-	//DESLIGA GYRO	//data = 0b00000111;
-	dr_I2C_Write(0, 0x69, 0x6C, 0b00000000);
-	//configura Gyro em  ± 250 °/s
-	dr_I2C_Write(0, 0x69, 0x1B, 0b00000000);
-	//Divisor de clock - amostragem //OR = 1Khz / (1+data)
-	dr_I2C_Write(0, 0x69, 0x19, 24);
-	//ACORDA
-	dr_I2C_Write(0, 0x69, 0x6B, 0b00000000);
 
-	dr_I2C_Read(0, 0x69, 0x75, &RXData[1]);
+	/* Inicializar Programas*/
+	int16_t status_init;
+	dr_MPU6050_ligar(500);
+	status_init = dr_MPU6050_init(&sensor_rho);
+	if (status_init != 1)
+		printf("\n\rInicialização incorreta: %d", status_init);
 
 	while (1)
 	{
 		dr_Leds_alterar(contador);
 		dr_Delay_s(1);
+
+		if (status_flag_uart)
+		{
+			contador = UART_receiveData(EUSCI_A0_BASE) - 48;
+			printf("\n\n\r-------Atualizando o valor para os Leds em: %d ---------",
+				contador);
+			if (contador == 2)
+			{
+				int status_atualizar;
+				dr_Tick_start();
+				status_atualizar = dr_MPU6050_atualizar(&sensor_theta1);
+				dr_Tick_stop();
+				printf("\n\rRetorno de atualização %d", status_atualizar);
+				printf("\n\rSensor_theta1[ax]:%d\n\rSensor_theta1[ay]:%d\n\rSensor_theta1[az]:%d",
+					sensor_theta1.ax,
+					sensor_theta1.ay,
+					sensor_theta1.az);
+				printf("\n\rSensor_theta1[gx]:%d\n\rSensor_theta1[gy]:%d\n\rSensor_theta1[gz]:%d",
+					sensor_theta1.gx,
+					sensor_theta1.gy,
+					sensor_theta1.gz);
+				printf("\n\rSensor_theta1[temp]:%d", sensor_theta1.temp);
+			}
+			if (contador == 3)
+			{
+				int status_atualizar;
+				dr_Tick_start();
+				status_atualizar = dr_MPU6050_atualizar(&sensor_rho);
+				dr_Tick_stop();
+				printf("\n\rRetorno de atualização %d", status_atualizar);
+				printf("\n\rSensor_rho[ax]:%d\n\rSensor_rho[ay]:%d\n\rSensor_rho[az]:%d",
+					sensor_rho.ax,
+					sensor_rho.ay,
+					sensor_rho.az);
+				printf("\n\rSensor_rho[gx]:%d\n\rSensor_rho[gy]:%d\n\rSensor_rho[gz]:%d",
+					sensor_rho.gx,
+					sensor_rho.gy,
+					sensor_rho.gz);
+				printf("\n\rSensor_rho[temp]:%d", sensor_rho.temp);
+			}
+
+			status_flag_uart = 0;
+		}
 	}
 }
 
 void EUSCIA0_IRQHandler(void)
 {
-	uint32_t status = UART_getEnabledInterruptStatus(EUSCI_A0_BASE);
-	if (status & EUSCI_A_UART_RECEIVE_INTERRUPT_FLAG)
-	{
-		contador = UART_receiveData(EUSCI_A0_BASE) - 48;
-		printf("\n\n\r-------Atualizando o valor para os Leds em: %d ---------",
-			contador);
-		if (contador == 2)
-		{
-			int status_erro;
-			dr_Tick_start();
-			status_erro = dr_I2C_ReadRaw(0, 0x69, 0x3B, 14, leitura);
-			dr_Tick_stop();
-			printf("\n\rRetorno do Status erro: %d", status_erro);
-		}
-
-		int j;
-		for (j = 0; j < 2; j++)
-			printf("\n\rRxData[%d]:%x", j, RXData[j]);
-		for (j = 0; j < 14; j++)
-			printf("\n\rleitura[%d]:%x", j, leitura[j]);
-	}
-
+	UART_clearInterruptFlag(EUSCI_A0_BASE, EUSCI_A_UART_RECEIVE_INTERRUPT_FLAG);
+	status_flag_uart = 1;
 }

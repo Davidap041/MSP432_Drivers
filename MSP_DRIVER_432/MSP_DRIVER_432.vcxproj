@@ -40,7 +40,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'">
     <ClCompile>
-      <AdditionalIncludeDirectories>.;../../../../../../../ti/simplelink_msp432p4_sdk_3_40_01_02/source;../../../../../../../../ti/simplelink_msp432p4_sdk_3_40_01_02/source;%(ClCompile.AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;../../../../../../../ti/simplelink_msp432p4_sdk_3_40_01_02/source;../../../../../../../../ti/simplelink_msp432p4_sdk_3_40_01_02/source;../Texas-MSP432-Drivers/Peripherals_drivers;%(ClCompile.AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUG=1;%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions />
       <CLanguageStandard />
@@ -60,8 +60,10 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
   <ItemGroup>
+    <ClCompile Include="..\Texas-MSP432-Drivers\Peripherals_drivers\mpu6050.c" />
     <ClCompile Include="Drivers_Control.c" />
     <ClCompile Include="LEDBlink.cpp" />
+    <ClInclude Include="..\Texas-MSP432-Drivers\Peripherals_drivers\mpu6050.h" />
     <ClInclude Include="Drivers_Control.h" />
     <None Include="MSP_DRIVER_432-Debug.vgdbsettings" />
     <None Include="MSP_DRIVER_432-Release.vgdbsettings" />
