@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Delete 7 resources" deleteContents="true" description="Delete 7 resources" element1="/2_systick_ok" element2="/3_timer32" element3="/4_i2c_rw_ok" element4="/5_mpu_6050" element5="/6_filtro_Kalman" element6="/empty" element7="/timer_a_continuous_overflow_interrupt_MSP_EXP432P401R_nortos_ccs2" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="7" stamp="1588613712409"/>
+</session>
