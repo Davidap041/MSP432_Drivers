@@ -36,15 +36,9 @@
     <ClCompile Include="Drivers_Control.c">
       <Filter>Source files</Filter>
     </ClCompile>
-    <ClCompile Include="mpu6050.c">
-      <Filter>Source files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Drivers_Control.h">
-      <Filter>Source files</Filter>
-    </ClInclude>
-    <ClInclude Include="mpu6050.h">
       <Filter>Source files</Filter>
     </ClInclude>
   </ItemGroup>
