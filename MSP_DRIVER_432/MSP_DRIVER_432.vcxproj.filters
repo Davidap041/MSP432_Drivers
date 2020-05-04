@@ -21,9 +21,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="LEDBlink.cpp">
-      <Filter>Source files</Filter>
-    </ClCompile>
     <None Include="MSP_DRIVER_432-Debug.vgdbsettings">
       <Filter>VisualGDB settings</Filter>
     </None>
@@ -33,19 +30,36 @@
     <None Include="msp432.xml">
       <Filter>VisualGDB settings</Filter>
     </None>
-    <ClCompile Include="Drivers_Control.c">
-      <Filter>Source files</Filter>
-    </ClCompile>
-    <ClCompile Include="mpu6050.c">
-      <Filter>Source files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Drivers_Control.h">
+    <ClInclude Include="..\Texas-MSP432-Drivers\Robotic_Arm_code\Control_Law.h">
       <Filter>Source files</Filter>
     </ClInclude>
-    <ClInclude Include="mpu6050.h">
+    <ClInclude Include="..\Texas-MSP432-Drivers\Robotic_Arm_code\Drivers_Control.h">
       <Filter>Source files</Filter>
     </ClInclude>
+    <ClInclude Include="..\Texas-MSP432-Drivers\Robotic_Arm_code\function.h">
+      <Filter>Source files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Texas-MSP432-Drivers\Robotic_Arm_code\Kalman.h">
+      <Filter>Source files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Texas-MSP432-Drivers\Robotic_Arm_code\mpu6050.h">
+      <Filter>Source files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Texas-MSP432-Drivers\Robotic_Arm_code\Drivers_Control.c">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Texas-MSP432-Drivers\Robotic_Arm_code\Kalman.c">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Texas-MSP432-Drivers\Robotic_Arm_code\main.c">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Texas-MSP432-Drivers\Robotic_Arm_code\mpu6050.c">
+      <Filter>Source files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
