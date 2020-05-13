@@ -26,104 +26,104 @@ extern "C" {
 #endif
 
 // **************************************************************************************************************************************************************
-// Includes necessários
+// Includes necessï¿½rios
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <ti/devices/msp432p4xx/driverlib/driverlib.h> // usar essa definição para o CodeComposer
-//#include <driverlib.h>                                   // Usar essa definição para o Visual Studio
+#include <ti/devices/msp432p4xx/driverlib/driverlib.h> // usar essa definiï¿½ï¿½o para o CodeComposer
+//#include <driverlib.h>                                   // Usar essa definiï¿½ï¿½o para o Visual Studio
 
 /*
  *******************************************"gpio.h"*************************************************************
- * GPIO_clearInterruptFlag - Limpa Flga de Interrupção
- * GPIO_disableInterrupt- Desabilita a Interrupção
- * GPIO_enableInterrupt - Habilita a Interrupção -
- * GPIO_getEnabledInterruptStatus - Ver o estado de "Habilitação" da Flag
+ * GPIO_clearInterruptFlag - Limpa Flga de Interrupï¿½ï¿½o
+ * GPIO_disableInterrupt- Desabilita a Interrupï¿½ï¿½o
+ * GPIO_enableInterrupt - Habilita a Interrupï¿½ï¿½o -
+ * GPIO_getEnabledInterruptStatus - Ver o estado de "Habilitaï¿½ï¿½o" da Flag
  * GPIO_getInputPinValue - Ler o valor de Entrada do Pino
- * GPIO_getInterruptStatus - Ler o estado de interrupção do pino selecionado -
- * GPIO_interruptEdgeSelect - Seleciona a Borda da Interrupçao do pino -
- * GPIO_registerInterrupt - Seleciona a rotina de Interrupção da porta que será executada  -
- * GPIO_unregisterInterrupt - Desabilita a rotina de interrupção da porta configurada anteriormente -
+ * GPIO_getInterruptStatus - Ler o estado de interrupï¿½ï¿½o do pino selecionado -
+ * GPIO_interruptEdgeSelect - Seleciona a Borda da Interrupï¿½ao do pino -
+ * GPIO_registerInterrupt - Seleciona a rotina de Interrupï¿½ï¿½o da porta que serï¿½ executada  -
+ * GPIO_unregisterInterrupt - Desabilita a rotina de interrupï¿½ï¿½o da porta configurada anteriormente -
  * GPIO_setAsInputPin - Seleciona como pino de Entrada -
  * GPIO_setAsInputPinWithPullDownResistor - Seleciona como pino de entrada e Resistor de Pull Down -
  * GPIO_setAsInputPinWithPullUpResistor - Seleciona como pino de entrada e Resistor de Pull Up -
- * GPIO_setAsOutputPin - Seleciona como pino de Saída -
- *** Pinos podem ser para os módulos (pág 35 Tabela 2.8 PxSel) senão por default serão simplie I/O (GPIO)
- * GPIO_setAsPeripheralModuleFunctionInputPin - Seleciona o módulo funcional 1°,2° ou 3° como entrada -
- * GPIO_setAsPeripheralModuleFunctionOutputPin - Seleciona o módulo funcional 1°,2° ou 3° como saída -
+ * GPIO_setAsOutputPin - Seleciona como pino de Saï¿½da -
+ *** Pinos podem ser para os mï¿½dulos (pï¿½g 35 Tabela 2.8 PxSel) senï¿½o por default serï¿½o simplie I/O (GPIO)
+ * GPIO_setAsPeripheralModuleFunctionInputPin - Seleciona o mï¿½dulo funcional 1ï¿½,2ï¿½ ou 3ï¿½ como entrada -
+ * GPIO_setAsPeripheralModuleFunctionOutputPin - Seleciona o mï¿½dulo funcional 1ï¿½,2ï¿½ ou 3ï¿½ como saï¿½da -
  *** Set Drive Strength to selected port **??** (Procurar no DataSheet)
  * GPIO_setDriveStrengthHigh - drivestrenght to High -
  * GPIO_setDriveStrengthLow - drivestrenght to Low -
- *** Operações com a saída dos pinos
- * GPIO_setOutputHighOnPin - Seta o valor de saída HIGH para o Pino -
- * GPIO_setOutputLowOnPin - Seta o valor de saída LOW para o Pino -
- * GPIO_toggleOutputOnPin - Alterna o valor do pino de saída -
+ *** Operaï¿½ï¿½es com a saï¿½da dos pinos
+ * GPIO_setOutputHighOnPin - Seta o valor de saï¿½da HIGH para o Pino -
+ * GPIO_setOutputLowOnPin - Seta o valor de saï¿½da LOW para o Pino -
+ * GPIO_toggleOutputOnPin - Alterna o valor do pino de saï¿½da -
  */
 /*
  *************************"uart.h"*****************************************
- * UART_initModule(uint32_t moduleInstance, const eUSCI_UART_Config *config) - Configura o módulo uart -
- * UART_enableModule(uint32_t moduleInstance) - Habilita inicializando o módulo uart configurado -
- * UART_disableModule(uint32_t moduleInstance) - Desabilita o módulo uart configurado -
- * UART_transmitData(uint32_t moduleInstance, uint_fast8_t transmitData) - Transmite um byte pelo módulo uart -
- * UART_receiveData(uint32_t moduleInstance) - Recebe um byte do módulo uart selecionado - ;
- * UART_queryStatusFlags(uint32_t moduleInstance, uint_fast8_t mask) - Ler o estado atual da flag selecionada do módulo - ;
- * UART_setDormant(uint32_t moduleInstance) - Põe o módulo em sleep mode, ( Only characters that are preceded by an idle-line or with address bit set UCRXIFG) - ;
+ * UART_initModule(uint32_t moduleInstance, const eUSCI_UART_Config *config) - Configura o mï¿½dulo uart -
+ * UART_enableModule(uint32_t moduleInstance) - Habilita inicializando o mï¿½dulo uart configurado -
+ * UART_disableModule(uint32_t moduleInstance) - Desabilita o mï¿½dulo uart configurado -
+ * UART_transmitData(uint32_t moduleInstance, uint_fast8_t transmitData) - Transmite um byte pelo mï¿½dulo uart -
+ * UART_receiveData(uint32_t moduleInstance) - Recebe um byte do mï¿½dulo uart selecionado - ;
+ * UART_queryStatusFlags(uint32_t moduleInstance, uint_fast8_t mask) - Ler o estado atual da flag selecionada do mï¿½dulo - ;
+ * UART_setDormant(uint32_t moduleInstance) - Pï¿½e o mï¿½dulo em sleep mode, ( Only characters that are preceded by an idle-line or with address bit set UCRXIFG) - ;
  * UART_resetDormant(uint32_t moduleInstance) - Desabilita o sleep mode (Not dormant. All received characters set UCRXIFG) -
  * UART_transmitAddress(uint32_t moduleInstance, uint_fast8_t transmitAddress) - (Transmits the next byte to be transmitted marked as address depending on selected multiprocessor mode) -
  * UART_transmitBreak(uint32_t moduleInstance) - (Transmit break. Transmits a break with the next write to the transmit buffer) -
- * UART_getReceiveBufferAddressForDMA(uint32_t moduleInstance) - Retorna o endereço do buffer rx do móulo DMA -
+ * UART_getReceiveBufferAddressForDMA(uint32_t moduleInstance) - Retorna o endereï¿½o do buffer rx do mï¿½ulo DMA -
  * UART_getTransmitBufferAddressForDMA(uint32_t moduleInstance) - (Returns the address of the TX Buffer of the UART for the DMA module) -
  * UART_selectDeglitchTime(uint32_t moduleInstance, uint32_t deglitchTime) - (Sets the deglitch time, 2,50,100 ou 200ns) -
- * UART_enableInterrupt(uint32_t moduleInstance, uint_fast8_t mask) - Habilita a interrupção da UART para a mascara escolhida -
- * UART_disableInterrupt(uint32_t moduleInstance, uint_fast8_t mask) - Desabilita a interrupção da UART para a mascara escolhida - ;
- * UART_getInterruptStatus(uint32_t moduleInstance, uint8_t mask) - Pega o estado de interrupção da flag escolhida - ;
+ * UART_enableInterrupt(uint32_t moduleInstance, uint_fast8_t mask) - Habilita a interrupï¿½ï¿½o da UART para a mascara escolhida -
+ * UART_disableInterrupt(uint32_t moduleInstance, uint_fast8_t mask) - Desabilita a interrupï¿½ï¿½o da UART para a mascara escolhida - ;
+ * UART_getInterruptStatus(uint32_t moduleInstance, uint8_t mask) - Pega o estado de interrupï¿½ï¿½o da flag escolhida - ;
  * UART_getEnabledInterruptStatus(uint32_t moduleInstance) - (Gets the current UART interrupt status masked with the enabled interrupts) - ;
  * UART_clearInterruptFlag - Limpa a flag selecionda -
- * UART_registerInterrupt UART_registerInterrupt(uint32_t moduleInstance, void (*intHandler)(void)) - Direciona a interrupção para a rotina escolhida -
+ * UART_registerInterrupt UART_registerInterrupt(uint32_t moduleInstance, void (*intHandler)(void)) - Direciona a interrupï¿½ï¿½o para a rotina escolhida -
  * UART_unregisterInterrupt(uint32_t moduleInstance) - (Unregisters the interrupt handler for the UART module)
  **/
 /*
  *************************"systick.h"*****************************************
- * SysTick_enableModule(void) - Habilita e inicia a contagem do módulo
- * SysTick_disableModule(void) - Para a contagem do módulo
- * SysTick_registerInterrupt(void (*intHandler)(void)) - Aponta para a rotina de interrupção
- * SysTick_unregisterInterrupt(void) - "Desaponta" a rotina de interrupção do módulo
- * SysTick_enableInterrupt(void) - Habilita a interrupção de estouro da contagem
- * SysTick_disableInterrupt(void) - Desabilita a interrupção de estouro da contagem
- * SysTick_setPeriod(uint32_t period) - Configura o número de ticks máximo que começa a contagem
- * SysTick_getPeriod(void) - Retorna o valor do tick de início de contagem programado
+ * SysTick_enableModule(void) - Habilita e inicia a contagem do mï¿½dulo
+ * SysTick_disableModule(void) - Para a contagem do mï¿½dulo
+ * SysTick_registerInterrupt(void (*intHandler)(void)) - Aponta para a rotina de interrupï¿½ï¿½o
+ * SysTick_unregisterInterrupt(void) - "Desaponta" a rotina de interrupï¿½ï¿½o do mï¿½dulo
+ * SysTick_enableInterrupt(void) - Habilita a interrupï¿½ï¿½o de estouro da contagem
+ * SysTick_disableInterrupt(void) - Desabilita a interrupï¿½ï¿½o de estouro da contagem
+ * SysTick_setPeriod(uint32_t period) - Configura o nï¿½mero de ticks mï¿½ximo que comeï¿½a a contagem
+ * SysTick_getPeriod(void) - Retorna o valor do tick de inï¿½cio de contagem programado
  * SysTick_getValue(void) - Retonana o valor da contagem
- * lembrando que é contagem decrescente em que o máximo é o valor do periodo
- * SysTick->VAL = 0 - Para reiniciar a contagem de fato é preciso zerar esse registrador
+ * lembrando que ï¿½ contagem decrescente em que o mï¿½ximo ï¿½ o valor do periodo
+ * SysTick->VAL = 0 - Para reiniciar a contagem de fato ï¿½ preciso zerar esse registrador
  **/
 /*
  *************************"timer32.h"*****************************************
- * Timer32_initModule - instancia(0,1); prescaler(1,15,256);ativa resolução e modo de operação
- * Timer32_setCount(uint32_t timer, uint32_t count) - se no modo periódico ele muda o periodo se no free run
+ * Timer32_initModule - instancia(0,1); prescaler(1,15,256);ativa resoluï¿½ï¿½o e modo de operaï¿½ï¿½o
+ * Timer32_setCount(uint32_t timer, uint32_t count) - se no modo periï¿½dico ele muda o periodo se no free run
  * ( Sets the count of the timer and resets the current value to the value passed. This value is set on the next rising edge of the clock provided to the timer module)
  * Timer32_setCountInBackground - seta o valor do current valor sem resetar
  * Timer32_getValue - (Timer32_getValue)
- * Timer32_startTimer - dar início ao timer pre configurado
- * Timer32_haltTimer - Para a contagem preservando os parâmetros
- * Timer32_enableInterrupt - Habilita a interrupção do Timer
- * Timer32_disableInterrupt - desabilita a interrupção do timer
- * Timer32_clearInterruptFlag - Limpa a flag de interrupção do timer
- * Timer32_getInterruptStatus - pega o status da interrupção do timer
- * Timer32_registerInterrupt - Registra uma chamada de interrupção para o timer selecionado
- * Timer32_unregisterInterrupt - "Desregistra" a chamada de interrupção para o timer selecionado
+ * Timer32_startTimer - dar inï¿½cio ao timer pre configurado
+ * Timer32_haltTimer - Para a contagem preservando os parï¿½metros
+ * Timer32_enableInterrupt - Habilita a interrupï¿½ï¿½o do Timer
+ * Timer32_disableInterrupt - desabilita a interrupï¿½ï¿½o do timer
+ * Timer32_clearInterruptFlag - Limpa a flag de interrupï¿½ï¿½o do timer
+ * Timer32_getInterruptStatus - pega o status da interrupï¿½ï¿½o do timer
+ * Timer32_registerInterrupt - Registra uma chamada de interrupï¿½ï¿½o para o timer selecionado
+ * Timer32_unregisterInterrupt - "Desregistra" a chamada de interrupï¿½ï¿½o para o timer selecionado
  */
 /*
  **************************"cs.h"*********************************************************
  * CS_setExternalClockSourceFrequency - Seta a frequencia para o uso de cristais externos do LFXT e HFXT
  * CS_initClockSignal - Inicializa os clocks do sistema, escolhendo prescalers e osciladores
- * CS_startHFXT - Inicializa o HFXT oscilador previamente configurado com a frequência dita
+ * CS_startHFXT - Inicializa o HFXT oscilador previamente configurado com a frequï¿½ncia dita
  * CS_startHFXTWithTimeout - This function has a timeout associated with stabilizing the oscillator.
- * CS_startLFXT - Inicializa o LFXT oscilador previamente configurado com a frequência dita
+ * CS_startLFXT - Inicializa o LFXT oscilador previamente configurado com a frequï¿½ncia dita
  * CS_startLFXTWithTimeout - This function has a timeout associated with stabilizing the oscillator.
- * CS_setReferenceOscillatorFrequency - Seta a frequência do oscilador interno [REFO] em 32kHz ou 128kHz
- * CS_enableClockRequest - Habilita a requisição condicional para uso dos clocks[MCLK,ACLK,HSMCLK,SMCLK]
- * CS_disableClockRequest - Desabilita a requisição condicional para uso dos clocks[MCLK,ACLK,HSMCLK,SMCLK]
+ * CS_setReferenceOscillatorFrequency - Seta a frequï¿½ncia do oscilador interno [REFO] em 32kHz ou 128kHz
+ * CS_enableClockRequest - Habilita a requisiï¿½ï¿½o condicional para uso dos clocks[MCLK,ACLK,HSMCLK,SMCLK]
+ * CS_disableClockRequest - Desabilita a requisiï¿½ï¿½o condicional para uso dos clocks[MCLK,ACLK,HSMCLK,SMCLK]
  * CS_getACLK - Get the current ACLK frequency.
  * CS_getSMCLK - Get the current SMCLK frequency.
  * CS_getMCLK - Get the current MCLK frequency.
@@ -151,12 +151,12 @@ extern "C" {
  **/
 /*
  **************************timer_a.h*************************************************
- * Timer_A_startCounter - Inicializa o contador, e o modo de operação.
- * Timer_A_configureContinuousMode - (em modo contínuo) Configura a fonte de clk, interrupção, prescaler.
- * Timer_A_configureUpMode -  (em modo rampa) Configura a fonte de clk, interrupção, prescaler.
- * Timer_A_configureUpDownMode - (em modo triangular) Configura a fonte de clk, interrupção, prescaler.
- * Timer_A_initCapture - (em modo capture) Configura a fonte de clk, interrupção, prescaler.
- * Timer_A_initCompare - (em modo compare) Configura a fonte de clk, interrupção, prescaler.
+ * Timer_A_startCounter - Inicializa o contador, e o modo de operaï¿½ï¿½o.
+ * Timer_A_configureContinuousMode - (em modo contï¿½nuo) Configura a fonte de clk, interrupï¿½ï¿½o, prescaler.
+ * Timer_A_configureUpMode -  (em modo rampa) Configura a fonte de clk, interrupï¿½ï¿½o, prescaler.
+ * Timer_A_configureUpDownMode - (em modo triangular) Configura a fonte de clk, interrupï¿½ï¿½o, prescaler.
+ * Timer_A_initCapture - (em modo capture) Configura a fonte de clk, interrupï¿½ï¿½o, prescaler.
+ * Timer_A_initCompare - (em modo compare) Configura a fonte de clk, interrupï¿½ï¿½o, prescaler.
  * Timer_A_clearTimer - Reset/Clear the timer clock divider, direction e count
  * Timer_A_getSynchronizedCaptureCompareInput - Get synchronized capture compare input
  * Timer_A_getOutputForOutputModeOutBitValue - Get output bit for output mode
@@ -260,7 +260,7 @@ extern "C" {
  **/
 
 // **************************************************************************************************************************************************************
-// Algumas definições para uso dos LEDs
+// Algumas definiï¿½ï¿½es para uso dos LEDs
 #define dr_set_led1      GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0)
 #define dr_set_RGB_red   GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN0)
 #define dr_set_RGB_green GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN1)
@@ -275,8 +275,8 @@ extern "C" {
 uint32_t estouro_Systick;
 //*****************************************************************************
 /*
- * \brief Essa função tem o propósito de testar as combinações entre os dois leds
- * \param contador define qual combinação será usada
+ * \brief Essa funï¿½ï¿½o tem o propï¿½sito de testar as combinaï¿½ï¿½es entre os dois leds
+ * \param contador define qual combinaï¿½ï¿½o serï¿½ usada
  *      Valied Values are :
  *      1
  *      2
@@ -290,9 +290,9 @@ uint32_t estouro_Systick;
 extern void dr_Leds_alterar(uint16_t contador);
 //*****************************************************************************
 /*
- * \brief Essa função tem como prósito fornecer um atraso de delay multiplicador por mil
+ * \brief Essa funï¿½ï¿½o tem como prï¿½sito fornecer um atraso de delay multiplicador por mil
  *
- * \param delay_k define qual valor de delay será usado
+ * \param delay_k define qual valor de delay serï¿½ usado
  *      Tipic Values are :
  *      1
  *      1.5
@@ -302,9 +302,9 @@ extern void dr_Leds_alterar(uint16_t contador);
 extern void dr_Delay_k(double maximo);
 //*****************************************************************************
 /*
- * \brief Essa função tem como prósito fornecer um atraso de n msegundos
+ * \brief Essa funï¿½ï¿½o tem como prï¿½sito fornecer um atraso de n msegundos
  *
- * \param i define qual valor de delay em ms será usado
+ * \param i define qual valor de delay em ms serï¿½ usado
  *      Tipic Values are :
  *      1
  *      2
@@ -314,9 +314,9 @@ extern void dr_Delay_k(double maximo);
 extern void dr_Delay_ms(int n);
 //*****************************************************************************
 /*
- * \brief Essa função tem como prósito fornecer um atraso de n segundos
+ * \brief Essa funï¿½ï¿½o tem como prï¿½sito fornecer um atraso de n segundos
  *
- * \param i define qual valor de delay em seg será usado
+ * \param i define qual valor de delay em seg serï¿½ usado
  *      Tipic Values are :
  *      1
  *      2
@@ -326,31 +326,31 @@ extern void dr_Delay_ms(int n);
 extern void dr_Delay_s(int n);
 //*****************************************************************************
 /*
- * \brief Essa função tem como prósito alterar os leds através das chaves
- * deve ser posterior a função PinConfig
+ * \brief Essa funï¿½ï¿½o tem como prï¿½sito alterar os leds atravï¿½s das chaves
+ * deve ser posterior a funï¿½ï¿½o PinConfig
  * \param None
  * \return None
  */
 extern void dr_Leds_alterar_pela_sw();
 //*****************************************************************************
 /*
- * \brief Essa função tem como prósito configurar:
- *   LEDS como saída ("posteriormente inicializando")
+ * \brief Essa funï¿½ï¿½o tem como prï¿½sito configurar:
+ *   LEDS como saï¿½da ("posteriormente inicializando")
  *   Chaves como entradas Pull Up
- * deve ser posterior a função PinConfig
+ * deve ser posterior a funï¿½ï¿½o PinConfig
  * \param None
  * \return None
  */
 extern void dr_Leds_sw_init();
 //*****************************************************************************
 /*
- * \brief Essa função tem como prósito enviar pela serial UART0 (PC) O PRINTF
+ * \brief Essa funï¿½ï¿½o tem como prï¿½sito enviar pela serial UART0 (PC) O PRINTF
  * Deve ser usada em conjunto com a fputs
  */
 extern int fputc(int _c, register FILE *_fp);
 //*****************************************************************************
 /*
- * \brief Essa função tem como prósito enviar pela serial UART0 (PC) O PRINTF
+ * \brief Essa funï¿½ï¿½o tem como prï¿½sito enviar pela serial UART0 (PC) O PRINTF
  * Deve ser usada em conjunto com a fputc
  */
 extern int fputs(const char *_ptr, register FILE *_fp);
@@ -372,10 +372,10 @@ extern int fputs(const char *_ptr, register FILE *_fp);
 
 //*****************************************************************************
 /*
- * Função de configuração da UART:
- * Configuração dos pinos P1.2 e P1.3 como modo UART
- * Configuração do clock DCO em 12MHz
- * Configuração da UART0 (EUSCI)
+ * Funï¿½ï¿½o de configuraï¿½ï¿½o da UART:
+ * Configuraï¿½ï¿½o dos pinos P1.2 e P1.3 como modo UART
+ * Configuraï¿½ï¿½o do clock DCO em 12MHz
+ * Configuraï¿½ï¿½o da UART0 (EUSCI)
  *                 // set BAUD_RATE_9600_Kbps    //set BAUD_RATE_115200_Kbps
  *                 // SMCLK Clock Source         //SMCLK Clock Source
  *(clockPrescalar) // BRDIV = 78                 // BRDIV  = 6
@@ -384,7 +384,7 @@ extern int fputs(const char *_ptr, register FILE *_fp);
  * *** // No Parity  // LSB First    // One stop bit // UART mode ****
  *(overSampling)   // Oversampling               // Oversampling
  *     // 8 bit data length
- * Posteriormente Habilta e inicializa o módulo
+ * Posteriormente Habilta e inicializa o mï¿½dulo
  *
  * UART Configuration Parameter. These are the configuration parameters to
  * make the eUSCI A UART module to operate with a 115200 baud rate. These
@@ -396,23 +396,23 @@ extern int fputs(const char *_ptr, register FILE *_fp);
 extern void dr_Uart_init();
 //*****************************************************************************
 /*
- * \brief Habilita a Interrupção da UART0 (EUSCI_A0_BASE)
+ * \brief Habilita a Interrupï¿½ï¿½o da UART0 (EUSCI_A0_BASE)
  * para monitorar a flag de "recebimento" (EUSCI_A_UART_RECEIVE_INTERRUPT)
  * de modo que quando recebe algo ela executa
- * a rotina de interrupção (default):void EUSCIA0_IRQHandler(void)
+ * a rotina de interrupï¿½ï¿½o (default):void EUSCIA0_IRQHandler(void)
  */
 
 extern void dr_Uart_interrupt_receive();
 //*****************************************************************************
 /*
- * \brief Habilita as Interrupções que foram programadas até então
+ * \brief Habilita as Interrupï¿½ï¿½es que foram programadas atï¿½ entï¿½o
  */
 extern void dr_Interrupt_on();
 //*****************************************************************************
 /*
- * \brief Habilita as Interrupções que foram programadas até então
- * Faz a leitura da frequência dos osciladores naquele momento e exibe-os
- * através de um "printf".
+ * \brief Habilita as Interrupï¿½ï¿½es que foram programadas atï¿½ entï¿½o
+ * Faz a leitura da frequï¿½ncia dos osciladores naquele momento e exibe-os
+ * atravï¿½s de um "printf".
  * MCLK_timer
  * SMCLK_timer
  * HSMCLK_timer
@@ -425,54 +425,54 @@ extern void dr_Clk_print();
 
 //*****************************************************************************
 /*
- * \brief Essa função tem o propósito Iniciar uma contagem a partir do clock principal
- * da CPU com objetivo de calcular o tempo de execução de instruções entre o
+ * \brief Essa funï¿½ï¿½o tem o propï¿½sito Iniciar uma contagem a partir do clock principal
+ * da CPU com objetivo de calcular o tempo de execuï¿½ï¿½o de instruï¿½ï¿½es entre o
  * Start_tick e o Stop_tick
- * obs1: A contagem é parada quando é chamada a função Stop_tick();
- * obs2: O tempo máximo de entre as duas funções deve ser menor que 10 segundos
- * ou seja, essa função mede o tempo de processamento até 10 segundo, caso esse valor seja
- * ultrapassado (e a interrupt_on estiver habilitada) será mandado um printf indicando
+ * obs1: A contagem ï¿½ parada quando ï¿½ chamada a funï¿½ï¿½o Stop_tick();
+ * obs2: O tempo mï¿½ximo de entre as duas funï¿½ï¿½es deve ser menor que 10 segundos
+ * ou seja, essa funï¿½ï¿½o mede o tempo de processamento atï¿½ 10 segundo, caso esse valor seja
+ * ultrapassado (e a interrupt_on estiver habilitada) serï¿½ mandado um printf indicando
  * o estouro do tempo medido
  *
  * \param None
- * \return Valor atual do Tick (Valor do início da contagem)
- * O valor atual do Tick é (valor máximo de tick programado - número de ticks até o get)
+ * \return Valor atual do Tick (Valor do inï¿½cio da contagem)
+ * O valor atual do Tick ï¿½ (valor mï¿½ximo de tick programado - nï¿½mero de ticks atï¿½ o get)
  */
 extern uint32_t dr_Tick_start();
 //*****************************************************************************
 /*
- * \brief Essa função tem o propósito Parar a contagem e calcular o tempo entre o Start
+ * \brief Essa funï¿½ï¿½o tem o propï¿½sito Parar a contagem e calcular o tempo entre o Start
  * e o Stop
- * Quando a função Stop_tick é chamada é calculado o tempo gasto entre o Start e Stop em
- * milisegundos e é "printado" na UART o valor correspondente
+ * Quando a funï¿½ï¿½o Stop_tick ï¿½ chamada ï¿½ calculado o tempo gasto entre o Start e Stop em
+ * milisegundos e ï¿½ "printado" na UART o valor correspondente
  * \param None
  * \return Valor de Ticks entre o Start e o Stop
  */
 extern uint32_t dr_Tick_stop();
 //*****************************************************************************
 /*
- * \brief Essa é a rotina de interrupção pré configurada que é chamado caso haja um estouro
+ * \brief Essa ï¿½ a rotina de interrupï¿½ï¿½o prï¿½ configurada que ï¿½ chamado caso haja um estouro
  * da contagem
  */
 extern void SysTick_Handler(void);
 //*****************************************************************************
 /*
- * \brief Essa função tem o propósito incializar o T32 e configurar com o periodo entregue
- * por parametro "tempo_seg". Esse timer é aconselhado para itervalos grandes maior que 1 seg
- * o limite superior ainda não foi definido, e o arredondamento também não foi
- * mas o periodo da interrupção pode ser calculada através de outra função dr_T32_getPeriod_seg()
- * obs1: o T32 só começa acontar apartir da função T32_start()
- * obs2: deve ser inicializada a interrupção através da função dr_T32_interrupt_init()
+ * \brief Essa funï¿½ï¿½o tem o propï¿½sito incializar o T32 e configurar com o periodo entregue
+ * por parametro "tempo_seg". Esse timer ï¿½ aconselhado para itervalos grandes maior que 1 seg
+ * o limite superior ainda nï¿½o foi definido, e o arredondamento tambï¿½m nï¿½o foi
+ * mas o periodo da interrupï¿½ï¿½o pode ser calculada atravï¿½s de outra funï¿½ï¿½o dr_T32_getPeriod_seg()
+ * obs1: o T32 sï¿½ comeï¿½a acontar apartir da funï¿½ï¿½o T32_start()
+ * obs2: deve ser inicializada a interrupï¿½ï¿½o atravï¿½s da funï¿½ï¿½o dr_T32_interrupt_init()
  * \param tempo_seg
- *           define o tempo em segundos que a função será chamada.
+ *           define o tempo em segundos que a funï¿½ï¿½o serï¿½ chamada.
  * \return noce
  */
 extern void dr_T32_init_seg(uint32_t timer, float tempo_seg);
 //*****************************************************************************
 /*
- * \brief Essa função dá o start no T32 para começar a contagem
- * obs1: o T32 deve ser incializado apartir das funções dr_T32_init_x antes do Start
- * obs2: aconselha-se configurar a interrupção antes do Start
+ * \brief Essa funï¿½ï¿½o dï¿½ o start no T32 para comeï¿½ar a contagem
+ * obs1: o T32 deve ser incializado apartir das funï¿½ï¿½es dr_T32_init_x antes do Start
+ * obs2: aconselha-se configurar a interrupï¿½ï¿½o antes do Start
  * \param none
  * \return none
  */
@@ -480,18 +480,18 @@ extern void dr_T32_init_Hz(uint32_t timer, float freq_Hz);
 extern void dr_T32_start(uint32_t timer);
 //*****************************************************************************
 /*
- * \brief Essa função registra e habilita a interrupção que será usada pelo T32
- * obs1: Não esquecer de habilitar a interrupção geral em dr_interrupt_on
+ * \brief Essa funï¿½ï¿½o registra e habilita a interrupï¿½ï¿½o que serï¿½ usada pelo T32
+ * obs1: Nï¿½o esquecer de habilitar a interrupï¿½ï¿½o geral em dr_interrupt_on
  * \param void rotina(void)
- *       recebe a rotina de interrupção que será chamada quando houver o estouro do
- *       T32 pré configurado pelas funções dr_T32_init_x
+ *       recebe a rotina de interrupï¿½ï¿½o que serï¿½ chamada quando houver o estouro do
+ *       T32 prï¿½ configurado pelas funï¿½ï¿½es dr_T32_init_x
  * \return none
  */
 extern void dr_T32_interrupt_init(uint32_t timer, void rotina(void));
 //*****************************************************************************
 /*
- * \brief Essa função retorna o valor exato que está configurado a interrupção
- * obs1: O principal uso dessa função é para calcular o period configurado sem arredondamentos
+ * \brief Essa funï¿½ï¿½o retorna o valor exato que estï¿½ configurado a interrupï¿½ï¿½o
+ * obs1: O principal uso dessa funï¿½ï¿½o ï¿½ para calcular o period configurado sem arredondamentos
  * e o periodo que foi realmente registrado com todos os truncamentos;
  * \param none
  * \return period
@@ -500,12 +500,12 @@ extern void dr_T32_interrupt_init(uint32_t timer, void rotina(void));
 extern double dr_T32_getPeriod_seg(uint32_t timer);
 //*****************************************************************************
 /*
- * \brief Essa função retorna o valor exato que está configurado a interrupção
- * obs1: O principal uso dessa função é para calcular o period configurado sem arredondamentos
+ * \brief Essa funï¿½ï¿½o retorna o valor exato que estï¿½ configurado a interrupï¿½ï¿½o
+ * obs1: O principal uso dessa funï¿½ï¿½o ï¿½ para calcular o period configurado sem arredondamentos
  * e o periodo que foi realmente registrado com todos os truncamentos;
  * \param none
  * \return period
- *       retorna o valor de Frequência registrado nos registrados internos do T32
+ *       retorna o valor de Frequï¿½ncia registrado nos registrados internos do T32
  */
 extern double dr_T32_get_freq(uint32_t timer);
 

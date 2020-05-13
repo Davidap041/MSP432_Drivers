@@ -84,7 +84,7 @@ void dr_Delay_s(int n)
 
 void dr_Leds_sw_init()
 {
-	// Selecionar Função dos Pinos
+	// Selecionar Funï¿½ï¿½o dos Pinos
 	GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0);                 // led 1
 	GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN0);            // led 2 (Vermelho)
 	GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN1);               // led 2 (Verde)
@@ -148,7 +148,7 @@ void dr_Uart_interrupt_receive()
 	Interrupt_enableInterrupt(INT_EUSCIA0);
 	//Interrupt_enableSleepOnIsrExit();
 
-	// Tirar habilitar interrupção em master
+	// Tirar habilitar interrupï¿½ï¿½o em master
 	//Interrupt_enableMaster();
 }
 extern void dr_Interrupt_on()
@@ -233,7 +233,7 @@ uint32_t dr_Tick_stop()
 	SysTick_disableInterrupt();
 	SysTick_disableModule();
 	printf("\n\rO valor do Systick: %.4fms,MCLK:%.2fMHz", tempo_ms, rate);
-	// todas essas funções duram em torno de 0.71 ms
+	// todas essas funï¿½ï¿½es duram em torno de 0.71 ms
 	return tick;
 }
 void SysTick_Handler(void)
@@ -265,18 +265,18 @@ void dr_Clk_print()
 }
 void dr_T32_init_seg(uint32_t timer, float tempo_seg)
 {
-	/* Seleção do Timer */
+	/* Seleï¿½ï¿½o do Timer */
 	if (timer == 0)
 		timer = TIMER32_0_BASE;
 	else
 		timer = TIMER32_1_BASE;
 
-	/* Cálculo do periodo do timer */
+	/* Cï¿½lculo do periodo do timer */
 	uint32_t mclk = CS_getMCLK();
 	double count_period = mclk / 256;
 	count_period = count_period * tempo_seg;
 
-	/* Inicialização e configuração do módulo */
+	/* Inicializaï¿½ï¿½o e configuraï¿½ï¿½o do mï¿½dulo */
 	Timer32_initModule(timer,
 	TIMER32_PRESCALER_256,
 						TIMER32_32BIT,
@@ -285,17 +285,17 @@ void dr_T32_init_seg(uint32_t timer, float tempo_seg)
 }
 void dr_T32_init_Hz(uint32_t timer, float freq_Hz)
 {
-	/* Seleção do Timer */
+	/* Seleï¿½ï¿½o do Timer */
 	if (timer == 0)
 		timer = TIMER32_0_BASE;
 	else
 		timer = TIMER32_1_BASE;
 
-	/* Cálculo do periodo do timer */
+	/* Cï¿½lculo do periodo do timer */
 	uint32_t mclk = CS_getMCLK();
 	double count_period = mclk / freq_Hz;
 
-	/* Inicialização e configuração do módulo */
+	/* Inicializaï¿½ï¿½o e configuraï¿½ï¿½o do mï¿½dulo */
 	Timer32_initModule(timer,
 	TIMER32_PRESCALER_1,
 						TIMER32_32BIT,
@@ -305,7 +305,7 @@ void dr_T32_init_Hz(uint32_t timer, float freq_Hz)
 
 void dr_T32_start(uint32_t timer)
 {
-	/* Seleção do Timer */
+	/* Seleï¿½ï¿½o do Timer */
 	if (timer == 0)
 		timer = TIMER32_0_BASE;
 	else
@@ -315,12 +315,12 @@ void dr_T32_start(uint32_t timer)
 }
 void dr_T32_interrupt_init(uint32_t timer, void rotina(void))
 {
-	/* Seleção do Timer */
+	/* Seleï¿½ï¿½o do Timer */
 	if (timer == 0)
 		timer = INT_T32_INT1;
 	else
 		timer = INT_T32_INT2;
-	// Sempre definir uma rotina para receber a interrupção como a registrada aqui
+	// Sempre definir uma rotina para receber a interrupï¿½ï¿½o como a registrada aqui
 	Interrupt_registerInterrupt(timer, rotina);
 	Interrupt_enableInterrupt(timer);
 
@@ -331,13 +331,13 @@ double dr_T32_getPeriod_seg(uint32_t timer)
 	/* Calcular Prescaler */
 	/* Preciso ver um modo de ler o valor do prescaler*/
 
-	/* Seleção do Timer */
+	/* Seleï¿½ï¿½o do Timer */
 	if (timer == 0)
 		period = TIMER32_1->LOAD * 256;
 	else
 		period = TIMER32_2->LOAD * 256;
 
-	/* Cálculo do Periodo */
+	/* Cï¿½lculo do Periodo */
 	period = period / (CS_getMCLK());
 	return period;
 }
@@ -347,13 +347,13 @@ double dr_T32_get_freq(uint32_t timer)
 	/* Calcular Prescaler */
 	/* Preciso ver um modo de ler o valor do prescaler */
 
-	/* Seleção do Timer */
+	/* Seleï¿½ï¿½o do Timer */
 	if (timer == 0)
 		period = TIMER32_1->LOAD;
 	else
 		period = TIMER32_2->LOAD;
 
-	/* Cálculo do Periodo */
+	/* Cï¿½lculo do Periodo */
 	period = CS_getMCLK() / period;
 	return period;
 }
@@ -553,7 +553,7 @@ void dr_PMAP_configuration()
 	P2MAP->PMAP_REGISTER5 = PMAP_UCB2SDA; /* UCB0SDA, MAP2.5 to ucb2_sda */
 	P3MAP->PMAP_REGISTER0 = PMAP_UCB2SCL; /* UCB0SCL, MAP3.0 to ucb2_scl */
 
-	/* atribuição das funções primárias */
+	/* atribuiï¿½ï¿½o das funï¿½ï¿½es primï¿½rias */
 	GPIO_setAsPeripheralModuleFunctionInputPin(
 	GPIO_PORT_P2,
 												GPIO_PIN5,
