@@ -252,9 +252,20 @@ extern "C" {
  * Interrupt_disableSleepOnIsrExit - Disables the processor to sleep when exiting an ISR.
  **/
 
-/****************************** "interrupt.h" ***********************************************************************
- *
- *
+/****************************** "pwm" ***********************************************************************
+ * Configurações do Modo:
+ * Timer_A_PWMConfig:
+ * typedef struct _Timer_A_PWMConfig
+{
+    uint_fast16_t clockSource;
+    uint_fast16_t clockSourceDivider;
+    uint_fast16_t timerPeriod;
+    uint_fast16_t compareRegister;
+    uint_fast16_t compareOutputMode;
+    uint_fast16_t dutyCycle;
+} Timer_A_PWMConfig;
+
+ * Timer_A_generatePWM(uint32_t timer, const Timer_A_PWMConfig *config)
  *
  *
  **/

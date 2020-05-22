@@ -86,7 +86,7 @@ void dr_Leds_sw_init()
 {
 	// Selecionar Fun��o dos Pinos
 	GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0);                 // led 1
-	GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN0);            // led 2 (Vermelho)
+	GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN0);           	 // led 2 (Vermelho)
 	GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN1);               // led 2 (Verde)
 	GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN2);                // led 2 (Azul)
 
@@ -101,6 +101,7 @@ void dr_Leds_sw_init()
 }
 void dr_Uart_init()
 {
+	/* Altera o DCO para 12MHZ: afetando */
 	/* Selecting P1.2 and P1.3 in UART mode */
 	GPIO_setAsPeripheralModuleFunctionInputPin(
 	GPIO_PORT_P1,
