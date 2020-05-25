@@ -31,8 +31,8 @@ extern "C" {
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <ti/devices/msp432p4xx/driverlib/driverlib.h> // usar essa defini��o para o CodeComposer
-//#include <driverlib.h>                                   // Usar essa defini��o para o Visual Studio
+#include <ti/devices/msp432p4xx/driverlib/driverlib.h> 
+#include <ti/devices/msp432p4xx/inc/msp432p401r.h> 
 
 /*
  *******************************************"gpio.h"*************************************************************
@@ -272,18 +272,39 @@ extern "C" {
 
 // **************************************************************************************************************************************************************
 // Algumas defini��es para uso dos LEDs
-#define dr_set_led1      GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0)
-#define dr_set_RGB_red   GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN0)
-#define dr_set_RGB_green GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN1)
-#define dr_set_RGB_blue  GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN2)
-#define dr_clc_led1      GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0)
-#define dr_clc_RGB_red   GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN0)
-#define dr_clc_RGB_green GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN1)
-#define dr_clc_RGB_blue  GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN2)
-#define dr_read_SW1      !GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN1);
-#define dr_read_SW2      !GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN4);
+#define Dr_set_led      GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0)
+#define Dr_set_RGB_red   GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN0)
+#define Dr_set_RGB_green GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN1)
+#define Dr_set_RGB_blue  GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN2)
+#define Dr_clc_led      GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0)
+#define Dr_clc_RGB_red   GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN0)
+#define Dr_clc_RGB_green GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN1)
+#define Dr_clc_RGB_blue  GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN2)
+#define Dr_toogle_led   GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
+#define Dr_read_SW1      !GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN1);
+#define Dr_read_SW2      !GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN4);
 
+typedef struct _dr_pwm_parameters
+{
+	bool fast_mode;
+	uint16_t timer_Prescaler;
+	bool true_Sawtooth_not_triangular;
+	uint_fast16_t period_count;
+} dr_pwm_parameters;
+/*Variaveis utilizadas*/
 uint32_t estouro_Systick;
+
+//*****************************************************************************
+/*
+ * \brief Essa fun��o tem como pr�sito configurar:
+ *   LEDS como sa�da ("posteriormente inicializando")
+ *   Chaves como entradas Pull Up
+ * deve ser posterior a fun��o PinConfig
+ * \param None
+ * \return None
+ */
+extern void DR_leds_sw_pin();
+extern inline void DR_leds_init();
 //*****************************************************************************
 /*
  * \brief Essa fun��o tem o prop�sito de testar as combina��es entre os dois leds
@@ -298,7 +319,15 @@ uint32_t estouro_Systick;
  *      7
  * \return None
  */
-extern void dr_Leds_alterar(uint16_t contador);
+extern void DR_leds_alterar(uint16_t contador);
+//*****************************************************************************
+/*
+ * \brief Essa fun��o tem como pr�sito alterar os leds atrav�s das chaves
+ * deve ser posterior a fun��o PinConfig
+ * \param None
+ * \return None
+ */
+extern void DR_leds_alterar_pela_sw();
 //*****************************************************************************
 /*
  * \brief Essa fun��o tem como pr�sito fornecer um atraso de delay multiplicador por mil
@@ -310,7 +339,7 @@ extern void dr_Leds_alterar(uint16_t contador);
  *      2
  * \return None
  */
-extern void dr_Delay_k(double maximo);
+extern void DR_delay_k(double maximo);
 //*****************************************************************************
 /*
  * \brief Essa fun��o tem como pr�sito fornecer um atraso de n msegundos
@@ -322,7 +351,7 @@ extern void dr_Delay_k(double maximo);
  *      ...
  * \return None
  */
-extern void dr_Delay_ms(int n);
+extern void DR_delay_ms(uint16_t n);
 //*****************************************************************************
 /*
  * \brief Essa fun��o tem como pr�sito fornecer um atraso de n segundos
@@ -334,25 +363,7 @@ extern void dr_Delay_ms(int n);
  *      ...
  * \return None
  */
-extern void dr_Delay_s(int n);
-//*****************************************************************************
-/*
- * \brief Essa fun��o tem como pr�sito alterar os leds atrav�s das chaves
- * deve ser posterior a fun��o PinConfig
- * \param None
- * \return None
- */
-extern void dr_Leds_alterar_pela_sw();
-//*****************************************************************************
-/*
- * \brief Essa fun��o tem como pr�sito configurar:
- *   LEDS como sa�da ("posteriormente inicializando")
- *   Chaves como entradas Pull Up
- * deve ser posterior a fun��o PinConfig
- * \param None
- * \return None
- */
-extern void dr_Leds_sw_init();
+extern void DR_delay_s(uint16_t n);
 //*****************************************************************************
 /*
  * \brief Essa fun��o tem como pr�sito enviar pela serial UART0 (PC) O PRINTF
@@ -365,21 +376,21 @@ extern int fputc(int _c, register FILE *_fp);
  * Deve ser usada em conjunto com a fputc
  */
 extern int fputs(const char *_ptr, register FILE *_fp);
+extern void DR_uart_pin();
+// //#define dr_BAUD_RATE_9600_Kbps
+// #define dr_BAUD_RATE_115200_Kbps
 
-//#define dr_BAUD_RATE_9600_Kbps
-#define dr_BAUD_RATE_115200_Kbps
+// #ifdef dr_BAUD_RATE_9600_Kbps
+// #define clockPrescalar 78
+// #define firstModReg 2
+// #define secondModReg 0
+// #endif // dr_BAUD_RATE_9600_Kbps
 
-#ifdef dr_BAUD_RATE_9600_Kbps
-#define clockPrescalar 78
-#define firstModReg 2
-#define secondModReg 0
-#endif // dr_BAUD_RATE_9600_Kbps
-
-#ifdef dr_BAUD_RATE_115200_Kbps
-#define clockPrescalar 6
-#define firstModReg 8
-#define secondModReg 0
-#endif // dr_BAUD_RATE_115200_Kbps
+// #ifdef dr_BAUD_RATE_115200_Kbps
+// #define clockPrescalar 6
+// #define firstModReg 8
+// #define secondModReg 0
+// #endif // dr_BAUD_RATE_115200_Kbps
 
 //*****************************************************************************
 /*
@@ -404,7 +415,8 @@ extern int fputs(const char *_ptr, register FILE *_fp);
  * http://software-dl.ti.com/msp430/msp430_public_sw/mcu/msp430/MSP430BaudRateConverter/index.html
 
  */
-extern void dr_Uart_init();
+extern void DR_uart_config();
+extern void DR_uart_init();
 //*****************************************************************************
 /*
  * \brief Habilita a Interrup��o da UART0 (EUSCI_A0_BASE)
@@ -413,12 +425,12 @@ extern void dr_Uart_init();
  * a rotina de interrup��o (default):void EUSCIA0_IRQHandler(void)
  */
 
-extern void dr_Uart_interrupt_receive();
+extern void DR_uart_interrupt_receive();
 //*****************************************************************************
 /*
  * \brief Habilita as Interrup��es que foram programadas at� ent�o
  */
-extern void dr_Interrupt_on();
+extern void DR_interrupt_on();
 //*****************************************************************************
 /*
  * \brief Habilita as Interrup��es que foram programadas at� ent�o
@@ -432,7 +444,7 @@ extern void dr_Interrupt_on();
  * BCLK_timer
  *
  */
-extern void dr_Clk_print();
+extern void DR_clks_print();
 
 //*****************************************************************************
 /*
@@ -449,7 +461,7 @@ extern void dr_Clk_print();
  * \return Valor atual do Tick (Valor do in�cio da contagem)
  * O valor atual do Tick � (valor m�ximo de tick programado - n�mero de ticks at� o get)
  */
-extern uint32_t dr_Tick_start();
+extern uint32_t DR_tick_start();
 //*****************************************************************************
 /*
  * \brief Essa fun��o tem o prop�sito Parar a contagem e calcular o tempo entre o Start
@@ -459,7 +471,7 @@ extern uint32_t dr_Tick_start();
  * \param None
  * \return Valor de Ticks entre o Start e o Stop
  */
-extern uint32_t dr_Tick_stop();
+extern uint32_t DR_tick_stop(bool ultra_precision_mode);
 //*****************************************************************************
 /*
  * \brief Essa � a rotina de interrup��o pr� configurada que � chamado caso haja um estouro
@@ -478,7 +490,7 @@ extern void SysTick_Handler(void);
  *           define o tempo em segundos que a fun��o ser� chamada.
  * \return noce
  */
-extern void dr_T32_init_seg(uint32_t timer, float tempo_seg);
+extern void DR_t32_config_seg(uint32_t timer, float tempo_seg);
 //*****************************************************************************
 /*
  * \brief Essa fun��o d� o start no T32 para come�ar a contagem
@@ -487,8 +499,8 @@ extern void dr_T32_init_seg(uint32_t timer, float tempo_seg);
  * \param none
  * \return none
  */
-extern void dr_T32_init_Hz(uint32_t timer, float freq_Hz);
-extern void dr_T32_start(uint32_t timer);
+extern void DR_t32_config_Hz(uint32_t timer, float freq_Hz);
+extern void DR_t32_init(uint32_t timer);
 //*****************************************************************************
 /*
  * \brief Essa fun��o registra e habilita a interrup��o que ser� usada pelo T32
@@ -498,7 +510,7 @@ extern void dr_T32_start(uint32_t timer);
  *       T32 pr� configurado pelas fun��es dr_T32_init_x
  * \return none
  */
-extern void dr_T32_interrupt_init(uint32_t timer, void rotina(void));
+extern void DR_t32_interrupt_init(int timer, void rotina(void));
 //*****************************************************************************
 /*
  * \brief Essa fun��o retorna o valor exato que est� configurado a interrup��o
@@ -508,7 +520,7 @@ extern void dr_T32_interrupt_init(uint32_t timer, void rotina(void));
  * \return period
  *       retorna o valor do periodo registrado nos registrados internos do T32
  */
-extern double dr_T32_getPeriod_seg(uint32_t timer);
+extern double DR_t32_getPeriod_seg(uint_fast8_t timer);
 //*****************************************************************************
 /*
  * \brief Essa fun��o retorna o valor exato que est� configurado a interrup��o
@@ -518,18 +530,24 @@ extern double dr_T32_getPeriod_seg(uint32_t timer);
  * \return period
  *       retorna o valor de Frequ�ncia registrado nos registrados internos do T32
  */
-extern double dr_T32_get_freq(uint32_t timer);
-
-extern void dr_I2C_Read(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
+extern double DR_t32_get_freq(uint_fast8_t timer);
+extern void DR_i2c_pin();
+extern void DR_i2c_config(uint_fast8_t n_I2C);
+extern void DR_i2c_init(uint_fast8_t n_I2C);
+extern void DR_i2c_read(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 						uint8_t *data);
-extern int dr_I2C_ReadRaw(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
-							uint8_t byteCount, uint8_t *data);
-extern void dr_I2C_Write(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
+extern void DR_i2c_write(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 							uint8_t data);
-extern void dr_I2C_init(uint8_t n_I2C);
-extern void dr_PMAP_configuration();
-extern void dr_I2C0_pin_config();
-
+extern int DR_i2c_readraw(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
+							uint8_t byteCount, uint8_t *data);
+extern void DR_pmap_pin();
+/*PWM functions*/
+extern void DR_pwm_config(uint_fast8_t n_timer, const dr_pwm_parameters *pwm_config);
+extern void DR_pwm_init(uint32_t timer, uint16_t pwm_channel,uint_fast16_t output_Mode, uint_fast16_t pwm_init_duty);
+extern inline uint16_t DR_pwm_getPeriod(uint_fast32_t timer);
+extern inline void DR_PWM_setDuty(uint_fast32_t timer, uint16_t pwm_channel,uint_fast16_t pwm_duty);
+extern inline uint16_t DR_pwm_getDuty(uint_fast32_t timer, uint16_t pwm_channel);
+extern void _pwm_set_Prescaler(uint32_t timer, uint16_t timer_prescaler);
 //*****************************************************************************
 //
 // Mark the end of the C bindings section for C++ compilers.

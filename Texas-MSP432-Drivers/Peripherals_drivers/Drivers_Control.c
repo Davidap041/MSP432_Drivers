@@ -1,168 +1,94 @@
 #include <Drivers_Control.h>
-
-void dr_Leds_alterar(uint16_t contador)
-{
-	if (contador == 1)
-	{
-		GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
-		dr_clc_RGB_blue;
-		dr_clc_RGB_green;
-		dr_clc_RGB_red;
-
-		dr_set_RGB_blue;
-	}
-	if (contador == 2)
-	{
-		GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
-		dr_clc_RGB_blue;
-		dr_set_RGB_green;
-	}
-	if (contador == 3)
-	{
-		GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
-		dr_clc_RGB_green;
-		dr_set_RGB_red;
-	}
-	if (contador == 4)
-	{
-		GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
-		dr_clc_RGB_blue;
-		dr_clc_RGB_green;
-		dr_clc_RGB_red;
-		dr_set_RGB_blue;
-		dr_set_RGB_green;
-
-	}
-	if (contador == 5)
-	{
-		GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
-		dr_clc_RGB_blue;
-		dr_clc_RGB_green;
-		dr_clc_RGB_red;
-		dr_set_RGB_blue;
-		dr_set_RGB_red;
-	}
-	if (contador == 6)
-	{
-		GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
-		dr_clc_RGB_blue;
-		dr_clc_RGB_green;
-		dr_clc_RGB_red;
-		dr_set_RGB_red;
-		dr_set_RGB_green;
-	}
-	if (contador == 7)
-	{
-		GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
-		dr_clc_RGB_blue;
-		dr_clc_RGB_green;
-		dr_clc_RGB_red;
-	}
-}
-void dr_Delay_k(double maximo)
-{
-	double contagem;
-	contagem = 1000 * maximo;
-	uint32_t ii;
-	for (ii = 0; ii < contagem; ii++)
-		;
-}
-void dr_Delay_ms(int n)
-{
-	int i, j;
-	for (j = 0; j < n; j++)
-		for (i = 250; i > 0; i--)
-			;
-}
-void dr_Delay_s(int n)
-{
-	int i, j;
-	for (j = 0; j < n; j++)
-		for (i = 250000; i > 0; i--)
-			;
-}
-
-void dr_Leds_sw_init()
+void DR_leds_sw_pin()
 {
 	// Selecionar Fun��o dos Pinos
 	GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0);                 // led 1
-	GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN0);           	 // led 2 (Vermelho)
+	GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN0);           // led 2 (Vermelho)
 	GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN1);               // led 2 (Verde)
 	GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN2);                // led 2 (Azul)
-
-	dr_clc_led1;
-	dr_clc_RGB_blue;
-	dr_clc_RGB_green;
-	dr_clc_RGB_red;
 
 	GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P1, GPIO_PIN1);         //sw1
 	GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P1, GPIO_PIN4);         //sw2
 
 }
-void dr_Uart_init()
+inline void DR_leds_init()
 {
-	/* Altera o DCO para 12MHZ: afetando */
-	/* Selecting P1.2 and P1.3 in UART mode */
-	GPIO_setAsPeripheralModuleFunctionInputPin(
-	GPIO_PORT_P1,
-												GPIO_PIN2 | GPIO_PIN3,
-												GPIO_PRIMARY_MODULE_FUNCTION);
-
-	/* Setting DCO to 12MHz */
-	CS_setDCOCenteredFrequency(CS_DCO_FREQUENCY_12);
-
-	// set BAUD_RATE_9600
-	// SMCLK Clock Source
-	// BRDIV = 78 // UCxBRF = 2	 // UCxBRS = 0
-	// No Parity  // LSB First    // One stop bit
-	// UART mode  // Oversampling // 8 bit data length
-	const eUSCI_UART_ConfigV1 uartConfig = {
-			EUSCI_A_UART_CLOCKSOURCE_SMCLK,
-			clockPrescalar,
-			firstModReg,
-			secondModReg,
-			EUSCI_A_UART_NO_PARITY,
-			EUSCI_A_UART_LSB_FIRST,
-			EUSCI_A_UART_ONE_STOP_BIT,
-			EUSCI_A_UART_MODE,
-			EUSCI_A_UART_OVERSAMPLING_BAUDRATE_GENERATION,
-			EUSCI_A_UART_8_BIT_LEN
-
-	};
-	/* Configuring UART Module */
-	UART_initModule(EUSCI_A0_BASE, &uartConfig);
-	/* Enable UART module */
-	UART_enableModule(EUSCI_A0_BASE);
-
-	// printf para testar
-	printf("\r\nPrintf support for the launchpad\r\n");
-	printf("Decimal(10) :%d\r\n", 10);
-	printf("Hex(10)     :%x\r\n", 10);
-	printf("float       :%f\r\n", 4.32);
-
+	Dr_clc_led;
+	Dr_clc_RGB_blue;
+	Dr_clc_RGB_green;
+	Dr_clc_RGB_red;
 }
-void dr_Uart_interrupt_receive()
+void DR_leds_alterar(uint16_t contador)
 {
-	//	void EUSCIA0_IRQHandler(void)
-	/* Enabling interrupts */
-	UART_enableInterrupt(EUSCI_A0_BASE, EUSCI_A_UART_RECEIVE_INTERRUPT);
-	Interrupt_enableInterrupt(INT_EUSCIA0);
-	//Interrupt_enableSleepOnIsrExit();
+	if (contador == 1)
+	{
+		Dr_toogle_led
+		;
+		Dr_clc_RGB_blue;
+		Dr_clc_RGB_green;
+		Dr_clc_RGB_red;
 
-	// Tirar habilitar interrup��o em master
-	//Interrupt_enableMaster();
+		Dr_set_RGB_blue;
+	}
+	if (contador == 2)
+	{
+		Dr_toogle_led
+		;
+		Dr_clc_RGB_blue;
+		Dr_set_RGB_green;
+	}
+	if (contador == 3)
+	{
+		Dr_toogle_led
+		;
+		Dr_clc_RGB_green;
+		Dr_set_RGB_red;
+	}
+	if (contador == 4)
+	{
+		Dr_toogle_led
+		;
+		Dr_clc_RGB_blue;
+		Dr_clc_RGB_green;
+		Dr_clc_RGB_red;
+		Dr_set_RGB_blue;
+		Dr_set_RGB_green;
+
+	}
+	if (contador == 5)
+	{
+		Dr_toogle_led
+		;
+		Dr_clc_RGB_blue;
+		Dr_clc_RGB_green;
+		Dr_clc_RGB_red;
+		Dr_set_RGB_blue;
+		Dr_set_RGB_red;
+	}
+	if (contador == 6)
+	{
+		Dr_toogle_led
+		;
+		Dr_clc_RGB_blue;
+		Dr_clc_RGB_green;
+		Dr_clc_RGB_red;
+		Dr_set_RGB_red;
+		Dr_set_RGB_green;
+	}
+	if (contador == 7)
+	{
+		Dr_toogle_led
+		;
+		Dr_clc_RGB_blue;
+		Dr_clc_RGB_green;
+		Dr_clc_RGB_red;
+	}
 }
-extern void dr_Interrupt_on()
+void DR_leds_alterar_pela_sw()
 {
-	Interrupt_enableMaster();
-}
-void dr_Leds_alterar_pela_sw()
-{
-	int estado_SW1 = dr_read_SW1
-	;
-	int estado_SW2 = dr_read_SW2
-	;
-	static int k;
+	int estado_SW1 = Dr_read_SW1;
+	int estado_SW2 = Dr_read_SW2;
+	static int k = 0;
 	if (estado_SW1 == 1)
 	{
 		k++;
@@ -170,9 +96,8 @@ void dr_Leds_alterar_pela_sw()
 		{
 			k = 7;
 		}
-		dr_Leds_alterar(k);
-		dr_Delay_k(5);
-
+		DR_leds_alterar(k);
+		DR_delay_k(5);
 	}
 	if (estado_SW2 == 1)
 	{
@@ -181,10 +106,34 @@ void dr_Leds_alterar_pela_sw()
 			k = 1;
 		}
 		k--;
-		dr_Leds_alterar(k);
-		dr_Delay_k(5);
+		DR_leds_alterar(k);
+		DR_delay_k(5);
 	}
 
+}
+void DR_delay_k(double maximo)
+{
+	double contagem;
+	contagem = 1000 * maximo;
+	uint32_t ii;
+	for (ii = 0; ii < contagem; ii++)
+		;
+}
+void DR_delay_ms(uint16_t n)
+{ /*for 12Mhz de DCO:MCLK*/
+	uint16_t i, j;
+	for (j = 0; j < n; j++)
+		for (i = 1000; i > 0; i--)
+			;
+}
+void DR_delay_s(uint16_t n)
+{ /*for 12Mhz de DCO:MCLK*/
+	uint16_t i, j, k;
+
+	for (j = 0; j < n; j++)
+		for (i = 1000; i > 0; i--)
+			for (k = 1000; k > 0; k--)
+				;
 }
 int fputc(int _c, register FILE *_fp)
 {
@@ -194,7 +143,6 @@ int fputc(int _c, register FILE *_fp)
 
 	return ((unsigned char) _c);
 }
-
 int fputs(const char *_ptr, register FILE *_fp)
 {
 	unsigned int i, len;
@@ -207,41 +155,120 @@ int fputs(const char *_ptr, register FILE *_fp)
 			;
 		UCA0TXBUF = (unsigned char) _ptr[i];
 	}
-
 	return len;
 }
-
-uint32_t dr_Tick_start()
+void DR_uart_pin()
 {
-	estouro_Systick = 10;  // 10 seg
+	/* Selecting P1.2 and P1.3 in UART mode */
+	GPIO_setAsPeripheralModuleFunctionInputPin(
+	GPIO_PORT_P1,
+												GPIO_PIN2 | GPIO_PIN3,
+												GPIO_PRIMARY_MODULE_FUNCTION);
+}
+void DR_uart_config(bool fast_mode)
+{ /* Setting DCO to 12MHz */
+	CS_setDCOCenteredFrequency(CS_DCO_FREQUENCY_12); /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
+	uint_fast16_t clockPrescalar;
+	uint_fast8_t firstModReg;
+	uint_fast8_t secondModReg;
+	if (fast_mode)
+	{		// BAUD_RATE_115200_Kbps
+		clockPrescalar = 6;
+		firstModReg = 8;
+		secondModReg = 0;
+	}
+	else
+	{	// BAUD_RATE_9600_Kbps
+		clockPrescalar = 78;
+		firstModReg = 2;
+		secondModReg = 0;
+
+	}
+	const eUSCI_UART_ConfigV1 uartConfig = {
+			EUSCI_A_UART_CLOCKSOURCE_SMCLK, clockPrescalar, firstModReg,
+			secondModReg,
+			EUSCI_A_UART_NO_PARITY,
+			EUSCI_A_UART_LSB_FIRST,
+			EUSCI_A_UART_ONE_STOP_BIT,
+			EUSCI_A_UART_MODE,
+			EUSCI_A_UART_OVERSAMPLING_BAUDRATE_GENERATION,
+			EUSCI_A_UART_8_BIT_LEN
+
+	};
+
+	/* Configuring UART Module */
+	UART_initModule(EUSCI_A0_BASE, &uartConfig);
+}
+void DR_uart_init()
+{	/* Enable UART module */
+	UART_enableModule(EUSCI_A0_BASE);
+
+	// printf para testar
+	printf("\r\nPrintf support for the launchpad\r\n");
+	printf("Decimal(10) :%d\r\n", 10);
+	printf("Hex(10)     :%x\r\n", 10);
+	printf("float       :%f\r\n", 4.32);
+}
+void DR_uart_interrupt_receive()
+{
+	//	void EUSCIA0_IRQHandler(void)
+	/* Enabling interrupts */
+	UART_enableInterrupt(EUSCI_A0_BASE, EUSCI_A_UART_RECEIVE_INTERRUPT);
+	Interrupt_enableInterrupt(INT_EUSCIA0);
+	//Interrupt_enableSleepOnIsrExit();
+	/* Interruptions Handler */
+	// void EUSCIA0_IRQHandler(void)
+}
+extern void DR_interrupt_on()
+{
+	Interrupt_enableMaster();
+}
+void DR_clks_print()
+{
+	uint_fast32_t MCLK_timer = CS_getMCLK();
+	uint_fast32_t SMCLK_timer = CS_getSMCLK();
+	uint_fast32_t HSMCLK_timer = CS_getHSMCLK();
+	uint_fast32_t DCO_timer = CS_getDCOFrequency();
+	uint_fast32_t ACLK_timer = CS_getACLK();
+	uint_fast32_t BCLK_timer = CS_getBCLK();
+	printf("\n\r MCLK:%u, SMCLK:%u, HSMCLK:%u,\n\r DCO:%u, ACLK:%u, BCLK%u",
+			MCLK_timer, SMCLK_timer, HSMCLK_timer, DCO_timer, ACLK_timer,
+			BCLK_timer);
+}
+uint32_t DR_tick_start()
+{
+	estouro_Systick = 10;  				// 10 seg
 	uint32_t period = CS_getMCLK();
 	SysTick_setPeriod(period);        // 1seg
-	SysTick->VAL = 0;        // reiniciar contagem
+	SysTick->VAL = 0;       		 // reiniciar contagem
 	SysTick_enableInterrupt();
-	SysTick_enableModule();       // inicia de fato a contagem
+	SysTick_enableModule();       	// inicia de fato a contagem
 	return SysTick_getValue();
 }
-uint32_t dr_Tick_stop()
+uint32_t DR_tick_stop(bool ultra_precision_mode)
 {
 	uint32_t tick = SysTick_getValue();      // para a contagem
 
-	double rate = CS_getMCLK() / 1000000;
-	tick = SysTick_getPeriod() - tick;
+	double rate = CS_getMCLK() / 1000000;	// Variavel de precisão não otimizada
+	tick = SysTick_getPeriod() - tick;		// Sem uso do hardware de ponto flutuante
 
-	double tempo_ms = tick / rate;      	// tempo em us
-	tempo_ms = tempo_ms / 1000;      		// tempo em ms
+	double tempo_us = tick / rate;      	// tempo em us
+	double tempo_ms = tempo_us / 1000;      		// tempo em ms
 	tempo_ms = (10 - estouro_Systick) * 1000 + tempo_ms;
 	SysTick_disableInterrupt();
 	SysTick_disableModule();
+	if(!ultra_precision_mode)// todas essas fun��es duram em torno de 0.71 ms
 	printf("\n\rO valor do Systick: %.4fms,MCLK:%.2fMHz", tempo_ms, rate);
-	// todas essas fun��es duram em torno de 0.71 ms
+	printf("\n\rO valor do Systick: %.4fms,MCLK:%.2fMHz", tempo_us, rate);
 	return tick;
 }
 void SysTick_Handler(void)
 {
 	if (estouro_Systick == 0)
 	{
-		printf("\n\r****** Tempo_do_Sys_Tick_estorou *******");
+		printf("\n\r!!!!!!!!!Tempo_do_Sys_Tick_estorou !!!!!!!");
+		printf("\n\rintervalo maior que 10seg!");
 		estouro_Systick = 10;
 	}
 	else
@@ -249,23 +276,8 @@ void SysTick_Handler(void)
 		estouro_Systick--;
 	}
 }
-
-void dr_Clk_print()
-{
-	volatile uint32_t MCLK_timer = CS_getMCLK();
-	volatile uint32_t SMCLK_timer = CS_getSMCLK();
-	volatile uint32_t HSMCLK_timer = CS_getHSMCLK();
-	volatile uint32_t DCO_timer = CS_getDCOFrequency();
-	volatile uint32_t ACLK_timer = CS_getACLK();
-	volatile uint32_t BCLK_timer = CS_getBCLK();
-
-	printf("\n\r MCLK:%u, SMCLK:%u, HSMCLK:%u,\n\r DCO:%u, ACLK:%u, BCLK%u",
-			MCLK_timer, SMCLK_timer, HSMCLK_timer, DCO_timer, ACLK_timer,
-			BCLK_timer);
-
-}
-void dr_T32_init_seg(uint32_t timer, float tempo_seg)
-{
+void DR_t32_config_seg(uint32_t timer, float tempo_seg)
+{	/* Fazer um estudo mais preciso dos limites dessa função */
 	/* Sele��o do Timer */
 	if (timer == 0)
 		timer = TIMER32_0_BASE;
@@ -274,9 +286,8 @@ void dr_T32_init_seg(uint32_t timer, float tempo_seg)
 
 	/* C�lculo do periodo do timer */
 	uint32_t mclk = CS_getMCLK();
-	double count_period = mclk / 256;
+	double count_period = mclk / 256;	//Dividindo pelo prescaler
 	count_period = count_period * tempo_seg;
-
 	/* Inicializa��o e configura��o do m�dulo */
 	Timer32_initModule(timer,
 	TIMER32_PRESCALER_256,
@@ -284,8 +295,8 @@ void dr_T32_init_seg(uint32_t timer, float tempo_seg)
 						TIMER32_PERIODIC_MODE);
 	Timer32_setCount(timer, count_period);
 }
-void dr_T32_init_Hz(uint32_t timer, float freq_Hz)
-{
+void DR_t32_config_Hz(uint32_t timer, float freq_Hz)
+{	/* Fazer um estudo mais preciso dos limites dessa função */
 	/* Sele��o do Timer */
 	if (timer == 0)
 		timer = TIMER32_0_BASE;
@@ -303,8 +314,7 @@ void dr_T32_init_Hz(uint32_t timer, float freq_Hz)
 						TIMER32_PERIODIC_MODE);
 	Timer32_setCount(timer, count_period);
 }
-
-void dr_T32_start(uint32_t timer)
+void DR_t32_init(uint32_t timer)
 {
 	/* Sele��o do Timer */
 	if (timer == 0)
@@ -314,7 +324,7 @@ void dr_T32_start(uint32_t timer)
 
 	Timer32_startTimer(timer, false);
 }
-void dr_T32_interrupt_init(uint32_t timer, void rotina(void))
+void DR_t32_interrupt_init(int timer, void rotina(void))
 {
 	/* Sele��o do Timer */
 	if (timer == 0)
@@ -324,15 +334,10 @@ void dr_T32_interrupt_init(uint32_t timer, void rotina(void))
 	// Sempre definir uma rotina para receber a interrup��o como a registrada aqui
 	Interrupt_registerInterrupt(timer, rotina);
 	Interrupt_enableInterrupt(timer);
-
 }
-double dr_T32_getPeriod_seg(uint32_t timer)
-{
+double DR_t32_getPeriod_seg(uint_fast8_t timer)
+{	/* Sele��o do Timer 0 ou 1 */
 	double period;
-	/* Calcular Prescaler */
-	/* Preciso ver um modo de ler o valor do prescaler*/
-
-	/* Sele��o do Timer */
 	if (timer == 0)
 		period = TIMER32_1->LOAD * 256;
 	else
@@ -342,12 +347,9 @@ double dr_T32_getPeriod_seg(uint32_t timer)
 	period = period / (CS_getMCLK());
 	return period;
 }
-double dr_T32_get_freq(uint32_t timer)
+double DR_t32_get_freq(uint_fast8_t timer)
 {
 	double period;
-	/* Calcular Prescaler */
-	/* Preciso ver um modo de ler o valor do prescaler */
-
 	/* Sele��o do Timer */
 	if (timer == 0)
 		period = TIMER32_1->LOAD;
@@ -358,28 +360,98 @@ double dr_T32_get_freq(uint32_t timer)
 	period = CS_getMCLK() / period;
 	return period;
 }
-void dr_I2C_Read(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
+void DR_i2c_pin()
+{	/* So para o I2C0 1.6(SDA) e 1.7(SCL) */
+	/* Select Port 1 for I2C - Set Pin 6, 7 to input Primary Module Function,
+	 *   (UCB0SIMO/UCB0SDA, UCB0SOMI/UCB0SCL). and setting P5.5 for input mode
+	 *   with pull-up enabled
+	 */
+	GPIO_setAsPeripheralModuleFunctionInputPin(
+	GPIO_PORT_P1,
+												GPIO_PIN6 + GPIO_PIN7,
+												GPIO_PRIMARY_MODULE_FUNCTION);
+}
+void DR_i2c_config(uint_fast8_t n_I2C){
+	/* Selecionar I2C */
+	uint32_t moduleI2C;
+	switch (n_I2C)
+	{
+	case 0:
+		moduleI2C = EUSCI_B0_BASE;
+		 break;
+	case 1:
+		moduleI2C = EUSCI_B1_BASE;
+		break;
+	case 2:
+		moduleI2C = EUSCI_B2_BASE;
+		break;
+	case 3:
+		moduleI2C = EUSCI_B3_BASE;
+		break;
+	default:
+		moduleI2C = EUSCI_B0_BASE;
+		break;
+	}
+	/* I2C Master Configuration Parameter */
+	const eUSCI_I2C_MasterConfig i2cConfig = {
+	EUSCI_B_I2C_CLOCKSOURCE_SMCLK,// SMCLK Clock Source
+			12000000,			// SMCLK = 12MHz
+			EUSCI_B_I2C_SET_DATA_RATE_400KBPS, // Desired I2C Clock of 400khz
+			0,			// No byte counter threshold
+			EUSCI_B_I2C_NO_AUTO_STOP   // No Autostop
+			};
+	/*Inicializar I2C - begin*/
+	I2C_disableModule(moduleI2C);
+	/* Initializing I2C Master to SMCLK at 400khz with no autostop */
+	I2C_initMaster(moduleI2C, &i2cConfig);
+}
+void DR_i2c_init(uint_fast8_t n_I2C)
+{	/*Escolher o modulo*/
+	uint32_t moduleI2C;
+	switch (n_I2C)
+	{
+	case 0:
+		moduleI2C = EUSCI_B0_BASE;
+		 break;
+	case 1:
+		moduleI2C = EUSCI_B1_BASE;
+		break;
+	case 2:
+		moduleI2C = EUSCI_B2_BASE;
+		break;
+	case 3:
+		moduleI2C = EUSCI_B3_BASE;
+		break;
+	default
+		moduleI2C = EUSCI_B0_BASE;
+		break;
+	}
+	/* Enable I2C Module to start operations */
+	I2C_enableModule(moduleI2C);
+}
+void DR_i2c_read(uint_fast8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 					uint8_t *data)
 {
 	/* Selecionar I2C */
 	EUSCI_B_Type *moduleI2C;
-	if (n_I2C == 0)
+	switch (n_I2C)
 	{
+	case 0:
 		moduleI2C = EUSCI_B0;
-	}
-	else if (n_I2C == 1)
-	{
+		 break;
+	case 1:
 		moduleI2C = EUSCI_B1;
-	}
-	else if (n_I2C == 2)
-	{
+		break;
+	case 2:
 		moduleI2C = EUSCI_B2;
-	}
-	else
-	{
+		break;
+	case 3:
 		moduleI2C = EUSCI_B3;
+		break;
+	default:
+		moduleI2C = EUSCI_B0;
+		break;
 	}
-
 	// dr_I2C_read() begin
 	/* Read a single byte at memAddr
 	 * read: S-(slaveAddr+w)-ACK-memAddr-ACK-R-(saddr+r)-ACK-data-NACK-P
@@ -405,29 +477,29 @@ void dr_I2C_Read(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 		; /* wait until STOP is sent */
 	// dr_I2C_read() end
 }
-
-void dr_I2C_Write(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
+void DR_i2c_write(uint_fast8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 					uint8_t data)
 {
 	/* Selecionar I2C */
 	EUSCI_B_Type *moduleI2C;
-	if (n_I2C == 0)
+	switch (n_I2C)
 	{
+	case 0:
 		moduleI2C = EUSCI_B0;
-	}
-	else if (n_I2C == 1)
-	{
+		 break;
+	case 1:
 		moduleI2C = EUSCI_B1;
-	}
-	else if (n_I2C == 2)
-	{
+		break;
+	case 2:
 		moduleI2C = EUSCI_B2;
-	}
-	else
-	{
+		break;
+	case 3:
 		moduleI2C = EUSCI_B3;
+		break;
+	default:
+		moduleI2C = EUSCI_B0;
+		break;
 	}
-
 	/* Write a single byte at memAddr
 	 * write: S-(slaveAddr+w)-ACK-memAddr-ACK-data-ACK-P
 	 */
@@ -446,69 +518,28 @@ void dr_I2C_Write(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 	while (moduleI2C->CTLW0 & 4)
 		; /* wait until STOP is sent */
 }
-void dr_I2C_init(uint8_t n_I2C)
-{
-	/* Selecionar I2C */
-	uint32_t moduleI2C;
-	if (n_I2C == 0)
-	{
-		moduleI2C = EUSCI_B0_BASE;
-	}
-	else if (n_I2C == 1)
-	{
-		moduleI2C = EUSCI_B1_BASE;
-	}
-	else if (n_I2C == 2)
-	{
-		moduleI2C = EUSCI_B2_BASE;
-	}
-	else
-	{
-		moduleI2C = EUSCI_B3_BASE;
-	}
-
-	/* I2C Master Configuration Parameter */
-	const eUSCI_I2C_MasterConfig i2cConfig = {
-	EUSCI_B_I2C_CLOCKSOURCE_SMCLK,
-												// SMCLK Clock Source
-			12000000,
-			// SMCLK = 12MHz
-			EUSCI_B_I2C_SET_DATA_RATE_400KBPS,
-			// Desired I2C Clock of 400khz
-			0,
-			// No byte counter threshold
-			EUSCI_B_I2C_NO_AUTO_STOP                // No Autostop
-			};
-	/*Inicializar I2C - begin*/
-	I2C_disableModule(moduleI2C);
-	/* Initializing I2C Master to SMCLK at 400khz with no autostop */
-	I2C_initMaster(moduleI2C, &i2cConfig);
-	//	// 1. Write the slave register in ucbxi2csa
-	//	I2C_setSlaveAddress(moduleI2C, 0x68);
-	/* Enable I2C Module to start operations */
-	I2C_enableModule(moduleI2C);
-	/*Inicializar I2C - end*/
-}
-int dr_I2C_ReadRaw(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
+int DR_i2c_readRaw(uint_fast8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 					uint8_t byteCount, uint8_t *data)
 {
-	/* Selecionar I2C */ //0.001ms
+	/* Selecionar I2C */
 	EUSCI_B_Type *moduleI2C;
-	if (n_I2C == 0)
+	switch (n_I2C)
 	{
+	case 0:
 		moduleI2C = EUSCI_B0;
-	}
-	else if (n_I2C == 1)
-	{
+		 break;
+	case 1:
 		moduleI2C = EUSCI_B1;
-	}
-	else if (n_I2C == 2)
-	{
+		break;
+	case 2:
 		moduleI2C = EUSCI_B2;
-	}
-	else
-	{
+		break;
+	case 3:
 		moduleI2C = EUSCI_B3;
+		break;
+	default:
+		moduleI2C = EUSCI_B0;
+		break;
 	}
 
 	/* Read Raw begin */
@@ -546,8 +577,8 @@ int dr_I2C_ReadRaw(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 
 	return 0; /* no error */
 }
-void dr_PMAP_configuration()
-{
+void DR_pmap_pin()
+{/*I2C2_pins: 2.5(SDA) e 3.0(SCL) */
 	/* Pmap Code / Avaible for port 2, 3 e 7 */
 	PMAP->KEYID = 0x2D52; /* Unlock PMAP */
 	/* Escolha dos novos pinos */
@@ -555,27 +586,156 @@ void dr_PMAP_configuration()
 	P3MAP->PMAP_REGISTER0 = PMAP_UCB2SCL; /* UCB0SCL, MAP3.0 to ucb2_scl */
 
 	/* atribui��o das fun��es prim�rias */
-	GPIO_setAsPeripheralModuleFunctionInputPin(
-	GPIO_PORT_P2,
-												GPIO_PIN5,
-												GPIO_PRIMARY_MODULE_FUNCTION);
-	GPIO_setAsPeripheralModuleFunctionInputPin(
-	GPIO_PORT_P3,
-												GPIO_PIN0,
-												GPIO_PRIMARY_MODULE_FUNCTION);
+	GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P2,GPIO_PIN5,GPIO_PRIMARY_MODULE_FUNCTION);
+	GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P3,GPIO_PIN0,GPIO_PRIMARY_MODULE_FUNCTION);
 	/* Lock PMAP */
 	PMAP->CTL = 1;
 	PMAP->KEYID = 0;
 }
-void dr_I2C0_pin_config()
-{
-	/* Select Port 1 for I2C - Set Pin 6, 7 to input Primary Module Function,
-	 *   (UCB0SIMO/UCB0SDA, UCB0SOMI/UCB0SCL). and setting P5.5 for input mode
-	 *   with pull-up enabled
-	 */
+void DR_pwm_config(uint_fast8_t n_timer, const dr_pwm_parameters *pwm_config)
+{	/*Configurar modo de operação do timer especificado, cada timer tem 4 canais de pwm*/
+	/* Selecionar timer */
+	uint32_t timer;
+	switch (n_timer)
+	{
+	case 0:
+		timer = TIMER_A0_BASE;
+		 break;
+	case 1:
+		timer = TIMER_A1_BASE;
+		break;
+	case 2:
+		timer = TIMER_A2_BASE;
+		break;
+	case 3:
+		timer = TIMER_A3_BASE;
+		break;
+	default:
+		timer = TIMER_A1_BASE;
+		break;
+	}
+	// Selecionando clk_source
+	uint_fast16_t clk_source;
+	if (pwm_config->fast_mode)
+	{
+		clk_source = TIMER_A_CLOCKSOURCE_SMCLK;
+	}
+	else
+	{
+		clk_source = TIMER_A_CLOCKSOURCE_ACLK;
+	}
 
-	GPIO_setAsPeripheralModuleFunctionInputPin(
-	GPIO_PORT_P1,
-												GPIO_PIN6 + GPIO_PIN7,
-												GPIO_PRIMARY_MODULE_FUNCTION);
+	// Selecionando o modo de configuração do timer
+	uint_fast16_t pwm_carrier;
+	if (pwm_config->true_Sawtooth_not_triangular)
+	{
+		pwm_carrier = TIMER_A_UP_MODE; // set Sawtooth Carrier mode
+	}
+	else
+	{
+		pwm_carrier = TIMER_A_UPDOWN_MODE; // set Traingular Carrier mode
+	}
+
+	// Selecionar Prescaler
+	_pwm_set_Prescaler(timer, pwm_config->timer_Prescaler);
+	// Limpar registradores que irão ser configurados
+	TIMER_A_CMSIS(timer)->CTL &= ~(TIMER_A_CLOCKSOURCE_INVERTED_EXTERNAL_TXCLK
+			+ TIMER_A_UPDOWN_MODE + TIMER_A_DO_CLEAR
+			+ TIMER_A_TAIE_INTERRUPT_ENABLE);
+
+	// Setando as configurações recebidas
+	TIMER_A_CMSIS(timer)->CTL |= (clk_source + pwm_carrier + TIMER_A_DO_CLEAR); // TACLR: IMER_A_DO_CLEAR 
+	TIMER_A_CMSIS(timer)->CCR[0] = pwm_config->period_count; // Configurando Periodo PWM
+}
+void DR_pwm_init(uint_fast8_t n_timer, uint16_t pwm_channel,
+					uint_fast16_t output_Mode, uint_fast16_t pwm_init_duty)
+{	/* Selecionar timer */
+	uint_fast32_t timer;
+	switch (n_timer)
+	{
+	case 0:
+		timer = TIMER_A0_BASE;
+		 break;
+	case 1:
+		timer = TIMER_A1_BASE;
+		break;
+	case 2:
+		timer = TIMER_A2_BASE;
+		break;
+	case 3:
+		timer = TIMER_A3_BASE;
+		break;
+	default:
+		timer = TIMER_A1_BASE;
+		break;
+	}
+	// Limpando os registradores que serão usados
+	TIMER_A_CMSIS(timer)->CCTL[0] &= ~(TIMER_A_CAPTURECOMPARE_INTERRUPT_ENABLE
+			+ TIMER_A_OUTPUTMODE_RESET_SET);
+	TIMER_A_CMSIS(timer)->CCTL[pwm_channel] |= output_Mode;
+	TIMER_A_CMSIS(timer)->CCR[pwm_channel] = pwm_init_duty; /*Como setar o duty do canal 0 ?*/
+}
+inline uint16_t DR_pwm_getPeriod(uint_fast32_t timer)
+{	
+	return TIMER_A_CMSIS(timer)->CCR[0]; /* PWM period*/
+}
+inline void DR_PWM_setDuty(uint_fast32_t timer, uint16_t pwm_channel,uint_fast16_t pwm_duty)
+{
+	TIMER_A_CMSIS(timer)->CCR[pwm_channel] = pwm_duty;
+}
+inline uint16_t DR_pwm_getDuty(uint_fast32_t timer, uint16_t pwm_channel)
+{	/*Pegar valor do contador do timer do cana de pwm especificado*/
+	return TIMER_A_CMSIS(timer)->CCR[pwm_channel];
+}
+void _pwm_set_Prescaler(uint32_t timer, uint16_t timer_prescaler)
+{ /* This functions is only to be used by DR_PWM_config  tentar botar em static para limitar a uso local*/
+	TIMER_A_CMSIS(timer)->CTL &= ~TIMER_A_CTL_ID__8;
+	TIMER_A_CMSIS(timer)->EX0 &= ~TIMER_A_EX0_IDEX_MASK;
+
+	switch (timer_prescaler)
+	{
+	case TIMER_A_CLOCKSOURCE_DIVIDER_1:
+	case TIMER_A_CLOCKSOURCE_DIVIDER_2:
+		TIMER_A_CMSIS(timer)->CTL |= ((timer_prescaler - 1) << 6);
+		TIMER_A_CMSIS(timer)->EX0 = TIMER_A_EX0_TAIDEX_0;
+		break;
+	case TIMER_A_CLOCKSOURCE_DIVIDER_4:
+		TIMER_A_CMSIS(timer)->CTL |= TIMER_A_CTL_ID__4;
+		TIMER_A_CMSIS(timer)->EX0 = TIMER_A_EX0_TAIDEX_0;
+		break;
+	case TIMER_A_CLOCKSOURCE_DIVIDER_8:
+		TIMER_A_CMSIS(timer)->CTL |= TIMER_A_CTL_ID__8;
+		TIMER_A_CMSIS(timer)->EX0 = TIMER_A_EX0_TAIDEX_0;
+		break;
+	case TIMER_A_CLOCKSOURCE_DIVIDER_3:
+	case TIMER_A_CLOCKSOURCE_DIVIDER_5:
+	case TIMER_A_CLOCKSOURCE_DIVIDER_6:
+	case TIMER_A_CLOCKSOURCE_DIVIDER_7:
+		TIMER_A_CMSIS(timer)->CTL |= TIMER_A_CTL_ID__1;
+		TIMER_A_CMSIS(timer)->EX0 = (timer_prescaler - 1);
+		break;
+
+	case TIMER_A_CLOCKSOURCE_DIVIDER_10:
+	case TIMER_A_CLOCKSOURCE_DIVIDER_12:
+	case TIMER_A_CLOCKSOURCE_DIVIDER_14:
+	case TIMER_A_CLOCKSOURCE_DIVIDER_16:
+		TIMER_A_CMSIS(timer)->CTL |= TIMER_A_CTL_ID__2;
+		TIMER_A_CMSIS(timer)->EX0 = (timer_prescaler / 2 - 1);
+		break;
+
+	case TIMER_A_CLOCKSOURCE_DIVIDER_20:
+	case TIMER_A_CLOCKSOURCE_DIVIDER_24:
+	case TIMER_A_CLOCKSOURCE_DIVIDER_28:
+	case TIMER_A_CLOCKSOURCE_DIVIDER_32:
+		TIMER_A_CMSIS(timer)->CTL |= TIMER_A_CTL_ID__4;
+		TIMER_A_CMSIS(timer)->EX0 = (timer_prescaler / 4 - 1);
+		break;
+	case TIMER_A_CLOCKSOURCE_DIVIDER_40:
+	case TIMER_A_CLOCKSOURCE_DIVIDER_48:
+	case TIMER_A_CLOCKSOURCE_DIVIDER_56:
+	case TIMER_A_CLOCKSOURCE_DIVIDER_64:
+		TIMER_A_CMSIS(timer)->CTL |= TIMER_A_CTL_ID__8;
+		TIMER_A_CMSIS(timer)->EX0 = (timer_prescaler / 8 - 1);
+		break;
+	}
 }

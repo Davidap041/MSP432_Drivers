@@ -1,9 +1,9 @@
 /* DriverLib Includes */
-#include <ti/devices/msp432p4xx/inc/msp432p401r.h>
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <inttypes.h>
 #include "Drivers_Control.h"
 #include "mpu6050.h"
 /* Global Variables */
@@ -19,75 +19,7 @@ void EUSCIA0_IRQHandler(void)
 	status_flag_uart = 1; // Flag usada na função main
 }
 
-/* Timer A PWM configure */
-//#define PWM_config_period  60000 // count Value
-//#define PWM_config_prescale  20
-//#define PWM_config_duty  60000 // pwm count in count Value
-typedef struct _Dr_pwm_parameters
-{
-	bool fast_mode;
-	uint16_t timer_Prescaler;
-	bool true_Sawtooth_not_triangular;
-	uint_fast16_t period_count;
-} Dr_pwm_parameters;
-
-void _Dr_pwm_set_Prescaler(uint32_t timer, uint16_t timer_prescaler)
-{	/* This functions is only to be used by DR_PWM_config  */
-	TIMER_A_CMSIS(timer)->CTL &= ~TIMER_A_CTL_ID__8;
-	TIMER_A_CMSIS(timer)->EX0 &= ~TIMER_A_EX0_IDEX_MASK;
-
-	switch (timer_prescaler)
-	{
-	case TIMER_A_CLOCKSOURCE_DIVIDER_1:
-	case TIMER_A_CLOCKSOURCE_DIVIDER_2:
-		TIMER_A_CMSIS(timer)->CTL |= ((timer_prescaler - 1) << 6);
-		TIMER_A_CMSIS(timer)->EX0 = TIMER_A_EX0_TAIDEX_0;
-		break;
-	case TIMER_A_CLOCKSOURCE_DIVIDER_4:
-		TIMER_A_CMSIS(timer)->CTL |= TIMER_A_CTL_ID__4;
-		TIMER_A_CMSIS(timer)->EX0 = TIMER_A_EX0_TAIDEX_0;
-		break;
-	case TIMER_A_CLOCKSOURCE_DIVIDER_8:
-		TIMER_A_CMSIS(timer)->CTL |= TIMER_A_CTL_ID__8;
-		TIMER_A_CMSIS(timer)->EX0 = TIMER_A_EX0_TAIDEX_0;
-		break;
-	case TIMER_A_CLOCKSOURCE_DIVIDER_3:
-	case TIMER_A_CLOCKSOURCE_DIVIDER_5:
-	case TIMER_A_CLOCKSOURCE_DIVIDER_6:
-	case TIMER_A_CLOCKSOURCE_DIVIDER_7:
-		TIMER_A_CMSIS(timer)->CTL |= TIMER_A_CTL_ID__1;
-		TIMER_A_CMSIS(timer)->EX0 = (timer_prescaler - 1);
-		break;
-
-	case TIMER_A_CLOCKSOURCE_DIVIDER_10:
-	case TIMER_A_CLOCKSOURCE_DIVIDER_12:
-	case TIMER_A_CLOCKSOURCE_DIVIDER_14:
-	case TIMER_A_CLOCKSOURCE_DIVIDER_16:
-		TIMER_A_CMSIS(timer)->CTL |= TIMER_A_CTL_ID__2;
-		TIMER_A_CMSIS(timer)->EX0 = (timer_prescaler / 2 - 1);
-		break;
-
-	case TIMER_A_CLOCKSOURCE_DIVIDER_20:
-	case TIMER_A_CLOCKSOURCE_DIVIDER_24:
-	case TIMER_A_CLOCKSOURCE_DIVIDER_28:
-	case TIMER_A_CLOCKSOURCE_DIVIDER_32:
-		TIMER_A_CMSIS(timer)->CTL |= TIMER_A_CTL_ID__4;
-		TIMER_A_CMSIS(timer)->EX0 = (timer_prescaler / 4 - 1);
-		break;
-	case TIMER_A_CLOCKSOURCE_DIVIDER_40:
-	case TIMER_A_CLOCKSOURCE_DIVIDER_48:
-	case TIMER_A_CLOCKSOURCE_DIVIDER_56:
-	case TIMER_A_CLOCKSOURCE_DIVIDER_64:
-		TIMER_A_CMSIS(timer)->CTL |= TIMER_A_CTL_ID__8;
-		TIMER_A_CMSIS(timer)->EX0 = (timer_prescaler / 8 - 1);
-		break;
-	}
-}
-uint16_t DR_PWM_getperiod_count(uint32_t timer)
-{
-	return TIMER_A_CMSIS(timer)->CCR[0]; /* PWM period*/
-}
-float DR_PWM_getfreq(uint32_t timer, const Dr_pwm_parameters *PWM)
+float DR_pwm_getfreq(uint32_t timer, const Dr_pwm_parameters *PWM)
 {
 	uint16_t PWM_period = TIMER_A0->CCR[0]; /* PWM period*/
 	uint32_t PWM_clk = CS_getSMCLK(); /* Timer CLK*/
@@ -99,17 +31,8 @@ float DR_PWM_getfreq(uint32_t timer, const Dr_pwm_parameters *PWM)
 	 */
 	return 0;
 }
-void DR_PWM_setDuty(uint32_t timer, uint16_t pwm_channel,
-					uint_fast16_t pwm_duty)
-{
-	TIMER_A_CMSIS(timer)->CCR[pwm_channel] = pwm_duty;
-}
-uint16_t DR_PWM_getDuty(uint32_t timer, uint16_t PWM_Channel)
-{
-	return TIMER_A_CMSIS(timer)->CCR[PWM_Channel];
-}
 
-float DR_PWM_getDuty_percent(uint16_t Pwm_Channel)
+float DR_pwm_getDuty_percent(uint16_t Pwm_Channel)
 {
 	// dependendo do modo tem formas diferentes de calcular
 	/* se for no modo reset/set */
@@ -119,63 +42,7 @@ float DR_PWM_getDuty_percent(uint16_t Pwm_Channel)
 
 	return duty_Cycle;
 }
-
-void DR_PWM_config(uint32_t timer, const Dr_pwm_parameters *pwm_config)
-{
-	// Selecionando clk_source
-	uint_fast16_t clk_source;
-	if (pwm_config->fast_mode)
-	{
-		clk_source = TIMER_A_CLOCKSOURCE_SMCLK;
-	}
-	else
-	{
-		clk_source = TIMER_A_CLOCKSOURCE_ACLK;
-	}
-
-	// Selecionando o modo de configuração do timer
-	uint_fast16_t pwm_carrier;
-	if (pwm_config->true_Sawtooth_not_triangular)
-	{
-		pwm_carrier = TIMER_A_UP_MODE; // set Sawtooth Carrier mode
-	}
-	else
-	{
-		pwm_carrier = TIMER_A_UPDOWN_MODE; // set Traingular Carrier mode
-	}
-
-	// Selecionar Prescaler
-	_Dr_pwm_set_Prescaler(timer, pwm_config->timer_Prescaler);
-	// Limpar registradores que irão ser configurados
-	TIMER_A_CMSIS(timer)->CTL &= ~(TIMER_A_CLOCKSOURCE_INVERTED_EXTERNAL_TXCLK
-			+ TIMER_A_UPDOWN_MODE + TIMER_A_DO_CLEAR
-			+ TIMER_A_TAIE_INTERRUPT_ENABLE);
-
-	// Setando as configurações recebidas
-	TIMER_A_CMSIS(timer)->CTL |= (clk_source + pwm_carrier + TIMER_A_DO_CLEAR); // TACLR: IMER_A_DO_CLEAR 
-	TIMER_A_CMSIS(timer)->CCR[0] = pwm_config->period_count; // Configurando Periodo PWM
-}
-
-void DR_PWM_init(uint32_t timer, uint16_t pwm_channel,
-					uint_fast16_t output_Mode, uint_fast16_t pwm_init_duty)
-{	// Limpando os registradores que serão usados
-	TIMER_A_CMSIS(timer)->CCTL[0] &= ~(TIMER_A_CAPTURECOMPARE_INTERRUPT_ENABLE
-			+ TIMER_A_OUTPUTMODE_RESET_SET);
-	TIMER_A_CMSIS(timer)->CCTL[pwm_channel] |= output_Mode;
-	TIMER_A_CMSIS(timer)->CCR[pwm_channel] = pwm_init_duty; /*Como setar o duty do canal 0 ?*/
-}
-
-Dr_pwm_parameters PWM_1 = { .fast_mode = true, .timer_Prescaler = 64,
-							.true_Sawtooth_not_triangular = true,
-							.period_count = 60000 };
-
-int main(void)
-{
-
-	WDT_A_holdTimer();
-	/* Pin Config */
-	dr_Leds_sw_init();
-
+DR_pwm_pin(){
 	/* PWM : Pin Config */
 	GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN4,
 	GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA0.1
@@ -187,21 +54,35 @@ int main(void)
 	// GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA0.4
 	GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P5, GPIO_PIN6,
 	GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA2.1
+}
+
+dr_pwm_parameters PWM_1 = { .fast_mode = true, .timer_Prescaler = 64,
+							.true_Sawtooth_not_triangular = true,
+							.period_count = 60000 };
+
+int main(void)
+{
+
+	WDT_A_holdTimer();
+	/* Pin Config */
+	dr_Leds_sw_init();
+	DR_pwm_pin();
+
 
 	/* Peripherals Config */
 	dr_Uart_init();
-	DR_PWM_config(TIMER_A0_BASE, &PWM_1);
-	DR_PWM_config(TIMER_A2_BASE, &PWM_1);
+	DR_pwm_config(TIMER_A0_BASE, &PWM_1);
+	DR_pwm_config(TIMER_A2_BASE, &PWM_1);
 
 	/* Interrupt Config */
-	dr_Uart_interrupt_receive();
-	DR_PWM_init(TIMER_A0_BASE, 1, TIMER_A_OUTPUTMODE_RESET_SET, 30000);
-	DR_PWM_init(TIMER_A0_BASE, 2, TIMER_A_OUTPUTMODE_RESET_SET, 30000);
-	DR_PWM_init(TIMER_A2_BASE, 1, TIMER_A_OUTPUTMODE_RESET_SET, 30000);
+	dr_uart_interrupt_receive();
 	/* Inicializar Programas*/
-
 	//	dr_PWM_init(60000,30000,64);
-	while (1)
+	DR_pwm_init(TIMER_A0_BASE, 1, TIMER_A_OUTPUTMODE_RESET_SET, 30000);
+	DR_pwm_init(TIMER_A0_BASE, 2, TIMER_A_OUTPUTMODE_RESET_SET, 30000);
+	DR_pwm_init(TIMER_A2_BASE, 1, TIMER_A_OUTPUTMODE_RESET_SET, 30000);
+	
+		while (1)
 	{
 		dr_Leds_alterar(contador);
 		dr_Delay_s(2); // deixar para ter alguma referência
