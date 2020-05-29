@@ -11,7 +11,7 @@
 uint16_t contador = 0; // Contador usado para alterar os leds
 
 /* Flags */
-uint32_t status_flag_uart = 0;
+uint_fast8_t status_flag_uart = 0;
 
 /* Interruptions Handler */
 void EUSCIA0_IRQHandler(void)
@@ -20,47 +20,35 @@ void EUSCIA0_IRQHandler(void)
 	status_flag_uart = 1; // Flag usada na função main
 }
 
-/*PWM functions test*/
-float DR_pwm_getfreq(uint32_t timer, const dr_pwm_parameters *PWM)
-{
-	uint16_t PWM_period = TIMER_A0->CCR[0]; /* PWM period*/
-	uint32_t PWM_clk = CS_getSMCLK(); /* Timer CLK*/
-	/* Timer Prescaler 
-	 PWM_prescaler = (TIMER_A0->TACL.ID*TIMER_A0->TACL.ID)* (TIMER_A0->TAEX0.TAIDEX + 1)
-	 */
-	/* Timer Period 
-	 TIMER_A0->CCR[0] + 1
-	 */
-	return 0;
-}
 
-float DR_pwm_getDuty_percent(uint16_t Pwm_Channel)
-{
-	// dependendo do modo tem formas diferentes de calcular
-	/* se for no modo reset/set */
-	uint16_t PWM_period = TIMER_A_CMSIS(TIMER_A0_BASE)->CCR[0]; /* PWM period*/
-	uint16_t PWM_set_period = TIMER_A_CMSIS(TIMER_A0_BASE)->CCR[Pwm_Channel]; /* Depende do modo */
-	float duty_Cycle = PWM_set_period / PWM_period;
-
-	return duty_Cycle;
-}
-void DR_pwm_pin(){
-	/* PWM : Pin Config */
-	GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN4,
-	GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA0.1
-	GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN5,
-	GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA0.2
-	// GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN6,
-	// GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA0.3
-	// GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN4,
-	// GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA0.4
-	GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P5, GPIO_PIN6,
-	GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA2.1
-}
-
-dr_pwm_parameters PWM = { .fast_mode = true, .timer_Prescaler = 64,
-							.true_Sawtooth_not_triangular = true,
-							.period_count = 60000 };
+// PWM Configuration for Channel
+dr_pwm_parameters PWM_0 = {
+	.timer = TIMER_A0_BASE,
+	.fast_mode = true,
+	.timer_Prescaler = 64,
+	.true_Sawtooth_not_triangular = true,
+	.period_count = 60000,
+	.pwm_channel = 1,
+	.outputmode = TIMER_A_OUTPUTMODE_RESET_SET
+};
+dr_pwm_parameters PWM_1 = {
+	.timer = TIMER_A0_BASE,
+	.fast_mode = true,
+	.timer_Prescaler = 64,
+	.true_Sawtooth_not_triangular = true,
+	.period_count = 60000,
+	.pwm_channel = 2,
+	.outputmode = TIMER_A_OUTPUTMODE_RESET_SET
+};
+dr_pwm_parameters PWM_2 = {
+	.timer = TIMER_A2_BASE,
+	.fast_mode = true,
+	.timer_Prescaler = 64,
+	.true_Sawtooth_not_triangular = true,
+	.period_count = 60000,
+	.pwm_channel = 1,
+	.outputmode = TIMER_A_OUTPUTMODE_RESET_SET
+};
 
 int main(void)
 {
@@ -74,66 +62,80 @@ int main(void)
 
 	/* Peripherals Config */
 	DR_uart_config(true);
-	DR_pwm_config(0,&PWM);
-	DR_pwm_config(2,&PWM);
+	DR_pwm_config(&PWM_0);
+	DR_pwm_config(&PWM_1);
+	DR_pwm_config(&PWM_2);
+
+	/* Inicializar Programas*/
+	DR_leds_init();
+	DR_uart_init();
+	DR_pwm_init(&PWM_0, 30000);
+	DR_pwm_init(&PWM_1, 30000);
+	DR_pwm_init(&PWM_2, 30000);
 
 	/* Interrupt Config */
 	DR_uart_interrupt_receive();
 	DR_interrupt_on();
-	
-	/* Inicializar Programas*/
-	DR_leds_init();
-	DR_uart_init();
-	
-	// //	dr_PWM_init(60000,30000,64);
-	// DR_pwm_init(TIMER_A0_BASE, 1, TIMER_A_OUTPUTMODE_RESET_SET, 30000);
-	// DR_pwm_init(TIMER_A0_BASE, 2, TIMER_A_OUTPUTMODE_RESET_SET, 30000);
-	// DR_pwm_init(TIMER_A2_BASE, 1, TIMER_A_OUTPUTMODE_RESET_SET, 30000);
-	
+
 		while (1)
 	{
 		DR_leds_alterar(contador);
-		DR_delay_s(2); // deixar para ter alguma referência
+		DR_delay_s(1); // deixar para ter alguma referência
 		if (status_flag_uart)
 		{
 			contador = UART_receiveData(EUSCI_A0_BASE) - 48;
 			printf("\n\n\rValor Leds em: %d", contador);
 			status_flag_uart = 0;
-			if (contador == 1) // Incrementar o Duty_Cycle
-			{
-// //				uint16_t PWM_period = DR_PWM_getperiod_count(TIMER_A2_BASE);
-// //				uint16_t PWM_Duty = DR_PWM_getDuty(TIMER_A2_BASE, 1);
-// 				if (PWM_Duty < PWM_period)
-// 				{
-// 					PWM_Duty += 1000;
-// 					DR_PWM_setDuty(TIMER_A0_BASE, 1, PWM_Duty);
-// 					DR_PWM_setDuty(TIMER_A0_BASE, 2, PWM_Duty);
-// 					DR_PWM_setDuty(TIMER_A2_BASE, 1, PWM_Duty);
-// 				}
-			}
-			if (contador == 2) // Decrementar o Duty Cycle
-			{
-				// uint16_t PWM_Duty = DR_PWM_getDuty(TIMER_A2_BASE, 1);
-				// if (PWM_Duty > 0)
-				// {
-				// 	PWM_Duty -= 1000;
-				// 	DR_PWM_setDuty(TIMER_A0_BASE, 1, PWM_Duty);
-				// 	DR_PWM_setDuty(TIMER_A0_BASE, 2, PWM_Duty);
-				// 	DR_PWM_setDuty(TIMER_A2_BASE, 1, PWM_Duty);
-					
-				// }
-			}
-			// if (contador == 3)
-			// { /* PWM information */
-			// 	printf("\n\r Pwm_Source :%x", pwmConfig.clockSource);
-			// 	printf("\n\r Pwm_Divider :%d", pwmConfig.timer_prescaler);
-			// 	printf("\n\r Pwm_Mode :%d", pwmConfig.compareOutputMode);
-			// 	printf("\n\r Pwm_Register :%d", pwmConfig.compareRegister);
-			// 	printf("\n\r Pwm_Duty :%d", pwmConfig.dutyCycle);
-			// 	printf("\n\r Pwm_Period :%d", pwmConfig.timerPeriod);
-			// 	printf("\n\r CLK_freq :%d", CS_getSMCLK());
-			// }
-		}
-	}
-}
+			// Atualizar valores dos PWMs valores dos PWMs
+			uint16_t duty_1 = DR_pwm_getDuty(&PWM_0);
+			uint16_t duty_2 = DR_pwm_getDuty(&PWM_1);
+			uint16_t duty_3 = DR_pwm_getDuty(&PWM_2);
 
+			uint16_t period_timer_0 = DR_pwm_getPeriod(&PWM_0);
+			uint16_t period_timer_2 = DR_pwm_getPeriod(&PWM_2);
+
+			 if (contador == 1) // Incrementar o Duty_Cycle
+			{
+ 				if (duty_1 < period_timer_0)
+ 				{
+ 					duty_1 += 10000;
+					duty_2 += 10000;
+					duty_3 += 10000;
+ 					DR_PWM_setDuty(&PWM_0, duty_1);
+					DR_PWM_setDuty(&PWM_1, duty_2);
+					DR_PWM_setDuty(&PWM_2, duty_3);
+ 				}
+ 			}	// end if contador == 1
+			 if (contador == 2 )
+			 { /* Decrementar Duty_Cycle*/
+				if (duty_1 > 0){
+					duty_1 -= 10000;
+					duty_2 -= 10000;
+					duty_3 -= 10000;
+					DR_PWM_setDuty(&PWM_0, duty_1);
+					DR_PWM_setDuty(&PWM_1, duty_2);
+					DR_PWM_setDuty(&PWM_2, duty_3);
+				}
+			 } // end if contador == 2
+			 if (contador == 3)
+			 { /*PWM inforations */
+			 	printf("\n\r CLK_freq :%d", CS_getSMCLK());
+				printf("\n\r Pwm_fast_mode :%x", PWM_0.fast_mode);
+			 	printf("\n\r Pwm_Prescaler :%d", PWM_0.timer_Prescaler);
+			 	printf("\n\r Pwm_Sawtooth :%d", PWM_0.true_Sawtooth_not_triangular);
+ 			 	printf("\n\r Pwm_Duty1 :%d", duty_1);
+				printf("\n\r Pwm_Duty2 :%d", duty_2);
+				printf("\n\r Pwm_Duty3 :%d", duty_3);
+ 			 	printf("\n\r Pwm_Period0 :%d", period_timer_0);
+				printf("\n\r Pwm_Period1 :%d", period_timer_2);
+				printf("\n\r Pwm_freq1 :%.3fHz", DR_pwm_getfreq(&PWM_0));
+				printf("\n\r Pwm_freq2 :%.3fHz", DR_pwm_getfreq(&PWM_1));
+				printf("\n\r Pwm_freq3 :%.3fHz", DR_pwm_getfreq(&PWM_2));
+				printf("\n\r Pwm_duty1 :%.2f%%", DR_pwm_getDuty_percent(&PWM_0));
+				printf("\n\r Pwm_duty2 :%.2f%%", DR_pwm_getDuty_percent(&PWM_1));
+				printf("\n\r Pwm_duty3 :%.2f%%", DR_pwm_getDuty_percent(&PWM_2));
+			 }// end if contador == 3
+			 
+		}// end if status_flag 
+	}// end while(1)
+}// end int main()

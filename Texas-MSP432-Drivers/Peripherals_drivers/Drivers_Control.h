@@ -286,10 +286,13 @@ extern "C" {
 
 typedef struct
 {
+	uint32_t timer;
 	bool fast_mode;
 	uint16_t timer_Prescaler;
 	bool true_Sawtooth_not_triangular;
 	uint_fast16_t period_count;
+	uint16_t pwm_channel;
+	uint16_t outputmode;
 } dr_pwm_parameters;
 /*Variaveis utilizadas*/
 uint32_t estouro_Systick;
@@ -542,11 +545,14 @@ extern int DR_i2c_readraw(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 							uint8_t byteCount, uint8_t *data);
 extern void DR_pmap_pin();
 /*PWM functions*/
-extern void DR_pwm_config(uint_fast8_t n_timer, const dr_pwm_parameters *pwm_config);
-extern void DR_pwm_init(uint32_t timer, uint16_t pwm_channel,uint_fast16_t output_Mode, uint_fast16_t pwm_init_duty);
-extern inline uint16_t DR_pwm_getPeriod(uint_fast32_t timer);
-extern inline void DR_PWM_setDuty(uint_fast32_t timer, uint16_t pwm_channel,uint_fast16_t pwm_duty);
-extern inline uint16_t DR_pwm_getDuty(uint_fast32_t timer, uint16_t pwm_channel);
+extern void DR_pwm_pin();
+extern void DR_pwm_config(const dr_pwm_parameters *pwm_config);
+extern void DR_pwm_init(dr_pwm_parameters *pwm_config, uint_fast16_t pwm_init_duty);
+extern float DR_pwm_getfreq(const dr_pwm_parameters *pwm_config);
+extern float DR_pwm_getDuty_percent(dr_pwm_parameters *pwm_config);
+extern inline uint16_t DR_pwm_getPeriod(dr_pwm_parameters *pwm_config);
+extern inline void DR_PWM_setDuty(dr_pwm_parameters *pwm_config, uint_fast16_t pwm_duty);
+extern inline uint16_t DR_pwm_getDuty(dr_pwm_parameters *pwm_config);
 extern void _pwm_set_Prescaler(uint32_t timer, uint16_t timer_prescaler);
 //*****************************************************************************
 //

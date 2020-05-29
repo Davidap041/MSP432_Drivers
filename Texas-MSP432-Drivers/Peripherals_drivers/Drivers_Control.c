@@ -592,28 +592,22 @@ void DR_pmap_pin()
 	PMAP->CTL = 1;
 	PMAP->KEYID = 0;
 }
-void DR_pwm_config(uint_fast8_t n_timer, const dr_pwm_parameters *pwm_config)
+void DR_pwm_pin()
+{	/*Funcionou okay*/
+	/* PWM : Pin Config */
+	GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN4,
+	GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA0.1
+	GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN5,
+	GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA0.2
+	// GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN6,
+	// GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA0.3
+	// GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN4,
+	// GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA0.4
+	GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P5, GPIO_PIN6,
+	GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA2.1
+}
+void DR_pwm_config(const dr_pwm_parameters *pwm_config)
 {	/*Configurar modo de operação do timer especificado, cada timer tem 4 canais de pwm*/
-	/* Selecionar timer */
-	uint32_t timer;
-	switch (n_timer)
-	{
-	case 0:
-		timer = TIMER_A0_BASE;
-		 break;
-	case 1:
-		timer = TIMER_A1_BASE;
-		break;
-	case 2:
-		timer = TIMER_A2_BASE;
-		break;
-	case 3:
-		timer = TIMER_A3_BASE;
-		break;
-	default:
-		timer = TIMER_A1_BASE;
-		break;
-	}
 	// Selecionando clk_source
 	uint_fast16_t clk_source;
 	if (pwm_config->fast_mode)
@@ -637,56 +631,66 @@ void DR_pwm_config(uint_fast8_t n_timer, const dr_pwm_parameters *pwm_config)
 	}
 
 	// Selecionar Prescaler
-	_pwm_set_Prescaler(timer, pwm_config->timer_Prescaler);
+	_pwm_set_Prescaler(pwm_config->timer, pwm_config->timer_Prescaler);
 	// Limpar registradores que irão ser configurados
-	TIMER_A_CMSIS(timer)->CTL &= ~(TIMER_A_CLOCKSOURCE_INVERTED_EXTERNAL_TXCLK
+	TIMER_A_CMSIS(pwm_config->timer)->CTL &= ~(TIMER_A_CLOCKSOURCE_INVERTED_EXTERNAL_TXCLK
 			+ TIMER_A_UPDOWN_MODE + TIMER_A_DO_CLEAR
 			+ TIMER_A_TAIE_INTERRUPT_ENABLE);
 
 	// Setando as configurações recebidas
-	TIMER_A_CMSIS(timer)->CTL |= (clk_source + pwm_carrier + TIMER_A_DO_CLEAR); // TACLR: IMER_A_DO_CLEAR 
-	TIMER_A_CMSIS(timer)->CCR[0] = pwm_config->period_count; // Configurando Periodo PWM
+	TIMER_A_CMSIS(pwm_config->timer)->CTL |= (clk_source + pwm_carrier + TIMER_A_DO_CLEAR); // TACLR: IMER_A_DO_CLEAR
+	TIMER_A_CMSIS(pwm_config->timer)->CCR[0] = pwm_config->period_count; // Configurando Periodo PWM
 }
-void DR_pwm_init(uint_fast8_t n_timer, uint16_t pwm_channel,
-					uint_fast16_t output_Mode, uint_fast16_t pwm_init_duty)
-{	/* Selecionar timer */
-	uint_fast32_t timer;
-	switch (n_timer)
-	{
-	case 0:
-		timer = TIMER_A0_BASE;
-		 break;
-	case 1:
-		timer = TIMER_A1_BASE;
-		break;
-	case 2:
-		timer = TIMER_A2_BASE;
-		break;
-	case 3:
-		timer = TIMER_A3_BASE;
-		break;
-	default:
-		timer = TIMER_A1_BASE;
-		break;
-	}
-	// Limpando os registradores que serão usados
-	TIMER_A_CMSIS(timer)->CCTL[0] &= ~(TIMER_A_CAPTURECOMPARE_INTERRUPT_ENABLE
+void DR_pwm_init(dr_pwm_parameters *pwm_config, uint_fast16_t pwm_init_duty)
+{	// Limpando os registradores que serão usados
+
+	TIMER_A_CMSIS(pwm_config->timer)->CCTL[0] &= ~(TIMER_A_CAPTURECOMPARE_INTERRUPT_ENABLE
 			+ TIMER_A_OUTPUTMODE_RESET_SET);
-	TIMER_A_CMSIS(timer)->CCTL[pwm_channel] |= output_Mode;
-	TIMER_A_CMSIS(timer)->CCR[pwm_channel] = pwm_init_duty; /*Como setar o duty do canal 0 ?*/
+	TIMER_A_CMSIS(pwm_config->timer)->CCTL[pwm_config->pwm_channel] |= pwm_config->outputmode;
+	TIMER_A_CMSIS(pwm_config->timer)->CCR[pwm_config->pwm_channel] = pwm_init_duty; /*Como setar o duty do canal 0 ?*/
 }
-inline uint16_t DR_pwm_getPeriod(uint_fast32_t timer)
+inline uint16_t DR_pwm_getPeriod(dr_pwm_parameters *pwm_config)
 {	
-	return TIMER_A_CMSIS(timer)->CCR[0]; /* PWM period*/
+	return TIMER_A_CMSIS(pwm_config->timer)->CCR[0] = pwm_config->period_count; /* PWM period*/
 }
-inline void DR_PWM_setDuty(uint_fast32_t timer, uint16_t pwm_channel,uint_fast16_t pwm_duty)
+inline void DR_PWM_setDuty(dr_pwm_parameters *pwm_config, uint_fast16_t pwm_duty)
 {
-	TIMER_A_CMSIS(timer)->CCR[pwm_channel] = pwm_duty;
+	TIMER_A_CMSIS(pwm_config->timer)->CCR[pwm_config->pwm_channel] = pwm_duty;
 }
-inline uint16_t DR_pwm_getDuty(uint_fast32_t timer, uint16_t pwm_channel)
+inline uint16_t DR_pwm_getDuty(dr_pwm_parameters *pwm_config)
 {	/*Pegar valor do contador do timer do cana de pwm especificado*/
-	return TIMER_A_CMSIS(timer)->CCR[pwm_channel];
+	return TIMER_A_CMSIS(pwm_config->timer)->CCR[pwm_config->pwm_channel];
 }
+/*PWM functions test*/
+float DR_pwm_getfreq(const dr_pwm_parameters *pwm_config)
+{	/*Funcionou okay*/
+	uint32_t PWM_clk;
+	/* Timer CLK*/
+	if (pwm_config->fast_mode)
+	PWM_clk = CS_getSMCLK(); 
+	else	
+	PWM_clk = CS_getACLK();
+	// Timer Prescaler 
+	uint16_t PWM_prescaler = pwm_config->timer_Prescaler;
+	// Timer Period 
+	uint16_t PWM_period = TIMER_A_CMSIS(pwm_config->timer)->CCR[0];// O certo seria mais um n ?
+
+	float pwm_freq = PWM_clk/PWM_prescaler;
+	pwm_freq = pwm_freq/PWM_period;  // aqui se tem o periodo do pwm em Hz
+	return pwm_freq;
+}
+
+float DR_pwm_getDuty_percent(dr_pwm_parameters *pwm_config)
+{ /*Funcionou okay*/
+	// dependendo do modo tem formas diferentes de calcular
+	/* se for no modo reset/set */
+	uint16_t PWM_period = TIMER_A_CMSIS(pwm_config->timer)->CCR[0];// O certo seria mais um n ?
+	uint16_t PWM_get_duty = TIMER_A_CMSIS(pwm_config->timer)->CCR[pwm_config->pwm_channel]; 
+	float duty_Cycle = (PWM_get_duty*100) / PWM_period;
+	
+	return duty_Cycle;
+}
+
 void _pwm_set_Prescaler(uint32_t timer, uint16_t timer_prescaler)
 { /* This functions is only to be used by DR_PWM_config  tentar botar em static para limitar a uso local*/
 	TIMER_A_CMSIS(timer)->CTL &= ~TIMER_A_CTL_ID__8;
