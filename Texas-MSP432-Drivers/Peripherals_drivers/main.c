@@ -1,4 +1,5 @@
 /* DriverLib Includes */
+#include <ti/devices/msp432p4xx/inc/msp432p401r.h>
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -19,7 +20,8 @@ void EUSCIA0_IRQHandler(void)
 	status_flag_uart = 1; // Flag usada na função main
 }
 
-float DR_pwm_getfreq(uint32_t timer, const Dr_pwm_parameters *PWM)
+/*PWM functions test*/
+float DR_pwm_getfreq(uint32_t timer, const dr_pwm_parameters *PWM)
 {
 	uint16_t PWM_period = TIMER_A0->CCR[0]; /* PWM period*/
 	uint32_t PWM_clk = CS_getSMCLK(); /* Timer CLK*/
@@ -42,7 +44,7 @@ float DR_pwm_getDuty_percent(uint16_t Pwm_Channel)
 
 	return duty_Cycle;
 }
-DR_pwm_pin(){
+void DR_pwm_pin(){
 	/* PWM : Pin Config */
 	GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN4,
 	GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA0.1
@@ -56,7 +58,7 @@ DR_pwm_pin(){
 	GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA2.1
 }
 
-dr_pwm_parameters PWM_1 = { .fast_mode = true, .timer_Prescaler = 64,
+dr_pwm_parameters PWM = { .fast_mode = true, .timer_Prescaler = 64,
 							.true_Sawtooth_not_triangular = true,
 							.period_count = 60000 };
 
@@ -65,28 +67,33 @@ int main(void)
 
 	WDT_A_holdTimer();
 	/* Pin Config */
-	dr_Leds_sw_init();
+	DR_leds_sw_pin();
 	DR_pwm_pin();
+	DR_uart_pin();
 
 
 	/* Peripherals Config */
-	dr_Uart_init();
-	DR_pwm_config(TIMER_A0_BASE, &PWM_1);
-	DR_pwm_config(TIMER_A2_BASE, &PWM_1);
+	DR_uart_config(true);
+	DR_pwm_config(0,&PWM);
+	DR_pwm_config(2,&PWM);
 
 	/* Interrupt Config */
-	dr_uart_interrupt_receive();
+	DR_uart_interrupt_receive();
+	DR_interrupt_on();
+	
 	/* Inicializar Programas*/
-	//	dr_PWM_init(60000,30000,64);
-	DR_pwm_init(TIMER_A0_BASE, 1, TIMER_A_OUTPUTMODE_RESET_SET, 30000);
-	DR_pwm_init(TIMER_A0_BASE, 2, TIMER_A_OUTPUTMODE_RESET_SET, 30000);
-	DR_pwm_init(TIMER_A2_BASE, 1, TIMER_A_OUTPUTMODE_RESET_SET, 30000);
+	DR_leds_init();
+	DR_uart_init();
+	
+	// //	dr_PWM_init(60000,30000,64);
+	// DR_pwm_init(TIMER_A0_BASE, 1, TIMER_A_OUTPUTMODE_RESET_SET, 30000);
+	// DR_pwm_init(TIMER_A0_BASE, 2, TIMER_A_OUTPUTMODE_RESET_SET, 30000);
+	// DR_pwm_init(TIMER_A2_BASE, 1, TIMER_A_OUTPUTMODE_RESET_SET, 30000);
 	
 		while (1)
 	{
-		dr_Leds_alterar(contador);
-		dr_Delay_s(2); // deixar para ter alguma referência
-
+		DR_leds_alterar(contador);
+		DR_delay_s(2); // deixar para ter alguma referência
 		if (status_flag_uart)
 		{
 			contador = UART_receiveData(EUSCI_A0_BASE) - 48;
@@ -94,27 +101,27 @@ int main(void)
 			status_flag_uart = 0;
 			if (contador == 1) // Incrementar o Duty_Cycle
 			{
-				uint16_t PWM_period = DR_PWM_getperiod_count(TIMER_A2_BASE);
-				uint16_t PWM_Duty = DR_PWM_getDuty(TIMER_A2_BASE, 1);
-				if (PWM_Duty < PWM_period)
-				{
-					PWM_Duty += 1000;
-					DR_PWM_setDuty(TIMER_A0_BASE, 1, PWM_Duty);
-					DR_PWM_setDuty(TIMER_A0_BASE, 2, PWM_Duty);
-					DR_PWM_setDuty(TIMER_A2_BASE, 1, PWM_Duty);
-				}
+// //				uint16_t PWM_period = DR_PWM_getperiod_count(TIMER_A2_BASE);
+// //				uint16_t PWM_Duty = DR_PWM_getDuty(TIMER_A2_BASE, 1);
+// 				if (PWM_Duty < PWM_period)
+// 				{
+// 					PWM_Duty += 1000;
+// 					DR_PWM_setDuty(TIMER_A0_BASE, 1, PWM_Duty);
+// 					DR_PWM_setDuty(TIMER_A0_BASE, 2, PWM_Duty);
+// 					DR_PWM_setDuty(TIMER_A2_BASE, 1, PWM_Duty);
+// 				}
 			}
 			if (contador == 2) // Decrementar o Duty Cycle
 			{
-				uint16_t PWM_Duty = DR_PWM_getDuty(TIMER_A2_BASE, 1);
-				if (PWM_Duty > 0)
-				{
-					PWM_Duty -= 1000;
-					DR_PWM_setDuty(TIMER_A0_BASE, 1, PWM_Duty);
-					DR_PWM_setDuty(TIMER_A0_BASE, 2, PWM_Duty);
-					DR_PWM_setDuty(TIMER_A2_BASE, 1, PWM_Duty);
+				// uint16_t PWM_Duty = DR_PWM_getDuty(TIMER_A2_BASE, 1);
+				// if (PWM_Duty > 0)
+				// {
+				// 	PWM_Duty -= 1000;
+				// 	DR_PWM_setDuty(TIMER_A0_BASE, 1, PWM_Duty);
+				// 	DR_PWM_setDuty(TIMER_A0_BASE, 2, PWM_Duty);
+				// 	DR_PWM_setDuty(TIMER_A2_BASE, 1, PWM_Duty);
 					
-				}
+				// }
 			}
 			// if (contador == 3)
 			// { /* PWM information */
@@ -130,64 +137,3 @@ int main(void)
 	}
 }
 
-// Timer_A_PWMConfig pwmConfig = { // Timer Configuration in 10 HZ, period = 6000 e duty 30000
-// 		TIMER_A_CLOCKSOURCE_SMCLK,	// Selecionando o Oscilador
-// 		timer_divider,
-// 		PWM_config_period,			//
-// 		TIMER_A_CAPTURECOMPARE_REGISTER_1,
-// 		TIMER_A_OUTPUTMODE_RESET_SET,
-// 		PWM_config_duty };
-// /* PWM in Up mode, para configurar em contiunos mode ou UP/Down mode vai ser dps */
-// uint16_t timer = TIMER_A0_BASE;
-// 	Timer_A_generatePWM(timer, &pwmConfig);
-/* Aditional Configuration */
-
-/* Configure the others channels Output*/
-//	TIMER_A_CMSIS(timer)->CCTL[1] = 0xE0; /* CCR1 reset/set mode */
-// TIMER_A_CMSIS(timer)->CCTL[2] = 0xE0; /* CCR2 reset/set mode */
-// TIMER_A_CMSIS(timer)->CCTL[3] = 0xE0; /* CCR3 reset/set mode */
-// TIMER_A_CMSIS(timer)->CCTL[4] = 0xE0; /* CCR4 reset/set mode */
-/* Configurar outro limite de contagem, ou seja outra frequência*/
-// TIMER_A_CMSIS(timer)->CCR[0] = 60000 - 1;
-/* Inicializar com diferentes duty_Cycles */
-// TIMER_A_CMSIS(timer)->CCR[1] = 30000; /* Depende do modo */
-/* Configurações para serem estudadas depois */
-//	TIMER_A_CMSIS(timer)->CCTL[1] = 0x40; /* CCR1 tougle/reset mode */
-// TIMER_A_CMSIS(timer)->CTL = 0x0234;	/* Use SMCLK, up/downmode,clear TA0R register */
-// privateTimer_AProcesstimer_prescaler(timer,timer_divider);/* Setar o prescaler diretamente*/
-/* Aprender a Configurar esse CTL
-
- TIMER_A_CMSIS(timer)->CTL &=
- ~(TIMER_A_CLOCKSOURCE_INVERTED_EXTERNAL_TXCLK + TIMER_A_UPDOWN_MODE
- + TIMER_A_DO_CLEAR + TIMER_A_TAIE_INTERRUPT_ENABLE);
-
- TIMER_A_CMSIS(timer)->CTL |= (config->clockSource + TIMER_A_UP_MODE
- + TIMER_A_DO_CLEAR);
-
- Selecionar os outros canais da forla da SDK
- ASSERT(
- (TIMER_A_CAPTURECOMPARE_REGISTER_0 == config->compareRegister)
- || (TIMER_A_CAPTURECOMPARE_REGISTER_1
- == config->compareRegister)
- || (TIMER_A_CAPTURECOMPARE_REGISTER_2
- == config->compareRegister)
- || (TIMER_A_CAPTURECOMPARE_REGISTER_3
- == config->compareRegister)
- || (TIMER_A_CAPTURECOMPARE_REGISTER_4
- == config->compareRegister)
- || (TIMER_A_CAPTURECOMPARE_REGISTER_5
- == config->compareRegister)
- || (TIMER_A_CAPTURECOMPARE_REGISTER_6
- == config->compareRegister));
- uint8_t idx = (config->compareRegister>> 1) - 1;
- TIMER_A_CMSIS(timer)->CCTL[idx] |= output_Mode; // Configura a saída do Canal
- TIMER_A_CMSIS(timer)->CCR[idx] = config->dutyCycle;			  // Configura o duty Cycle
- */
-// ASSERT((TIMER_A_OUTPUTMODE_OUTBITVALUE == output_Mode)
-// 		|| (TIMER_A_OUTPUTMODE_SET == output_Mode)
-// 		|| (TIMER_A_OUTPUTMODE_TOGGLE_RESET == output_Mode)
-// 		|| (TIMER_A_OUTPUTMODE_SET_RESET == output_Mode)
-// 		|| (TIMER_A_OUTPUTMODE_TOGGLE == output_Mode)
-// 		|| (TIMER_A_OUTPUTMODE_RESET == output_Mode)
-// 		|| (TIMER_A_OUTPUTMODE_TOGGLE_SET == output_Mode)
-// 		|| (TIMER_A_OUTPUTMODE_RESET_SET == output_Mode));  // Mais comum

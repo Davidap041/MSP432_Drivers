@@ -1,33 +1,33 @@
 #include "mpu6050.h"
 
-int dr_MPU6050_atualizar(mpu_data_t *sensor)
+int DR_mpu6050_atualizar(dr_mpu_data_t *sensor)
 {
 	uint8_t leitura[14] = { 0 };
 	uint8_t ready = 0;
 	int8_t status_erro;
 	erro_watch[1] = 100;
-	/* interrupção dado Pronto */
+	/* interrupï¿½ï¿½o dado Pronto */
 	while (((ready && 1) != 1) && erro_watch[1] > 0)
 	{
-		status_erro = dr_MPU6050_Read(sensor->I2C, sensor->address, 0x3A,
+		status_erro = DR_mpu6050_read(sensor->I2C, sensor->address, 0x3A,
 										&ready);
 		if (status_erro != 1)
 		{
-			dr_MPU6050_ligar(100);
-			dr_MPU6050_init(sensor);
-			return status_erro; // erro nos cabos de comunicação
+			DR_mpu6050_ligar(100);
+			DR_mpu6050_init(sensor);
+			return status_erro; // erro nos cabos de comunicaï¿½ï¿½o
 
 		}
 		erro_watch[1]--;
 	}
 	if (erro_watch[1] == 0)
 	{
-		dr_MPU6050_ligar(100);
-		dr_MPU6050_init(sensor);
-		return -1; // erro nos cabos de alimentação
+		DR_mpu6050_ligar(100);
+		DR_mpu6050_init(sensor);
+		return -1; // erro nos cabos de alimentaï¿½ï¿½o
 	}
 
-	dr_I2C_ReadRaw(sensor->I2C, sensor->address, 0x3B, 14, leitura);
+	DR_i2c_readraw(sensor->I2C, sensor->address, 0x3B, 14, leitura);
 	sensor->ax = (leitura[0] << 8) | (leitura[1]);
 	sensor->ay = (leitura[2] << 8) | (leitura[3]);
 	sensor->az = (leitura[4] << 8) | (leitura[5]);
@@ -38,44 +38,44 @@ int dr_MPU6050_atualizar(mpu_data_t *sensor)
 	return 1;
 }
 
-int dr_MPU6050_init(mpu_data_t *sensor)
+int DR_mpu6050_init(dr_mpu_data_t *sensor)
 {
 	uint8_t data = 0;
 	uint16_t status_erro;
-	status_erro = dr_MPU6050_Read(sensor->I2C, sensor->address, 0x75, &data)
+	status_erro = DR_mpu6050_read(sensor->I2C, sensor->address, 0x75, &data)
 			- 10;
 	if (data != 0x68)
 	{
 		return status_erro;
 	}
-	//Acelerometro mede a resolução +-2g
-	dr_I2C_Write(sensor->I2C, sensor->address, 0x1C, 0b00000000);
+	//Acelerometro mede a resoluï¿½ï¿½o +-2g
+	DR_i2c_write(sensor->I2C, sensor->address, 0x1C, 0b00000000);
 	//pequeno filtro digital
-	dr_I2C_Write(sensor->I2C, sensor->address, 0x1A, 0b00000001);
-	//liga interrupção dado pronto
-	dr_I2C_Write(sensor->I2C, sensor->address, 0x38, 0b00000001);
+	DR_i2c_write(sensor->I2C, sensor->address, 0x1A, 0b00000001);
+	//liga interrupï¿½ï¿½o dado pronto
+	DR_i2c_write(sensor->I2C, sensor->address, 0x38, 0b00000001);
 	//DESLIGA GYRO	//data = 0b00000111;
-	dr_I2C_Write(sensor->I2C, sensor->address, 0x6C, 0b00000000);
-	//configura Gyro em  ± 250 °/s
-	dr_I2C_Write(sensor->I2C, sensor->address, 0x1B, 0b00000000);
+	DR_i2c_write(sensor->I2C, sensor->address, 0x6C, 0b00000000);
+	//configura Gyro em  ï¿½ 250 ï¿½/s
+	DR_i2c_write(sensor->I2C, sensor->address, 0x1B, 0b00000000);
 	//Divisor de clock - amostragem //OR = 1Khz / (1+data)
-	dr_I2C_Write(sensor->I2C, sensor->address, 0x19, 24);
+	DR_i2c_write(sensor->I2C, sensor->address, 0x19, 24);
 	//ACORDA
-	dr_I2C_Write(sensor->I2C, sensor->address, 0x6B, 0b00000000);
+	DR_i2c_write(sensor->I2C, sensor->address, 0x6B, 0b00000000);
 	return 1;
 }
 
-void dr_MPU6050_ligar(uint16_t tempo_ms)
+void DR_mpu6050_ligar(uint16_t tempo_ms)
 {
 	/* Rotina para ligar o sensor, ou sensores */
 	GPIO_setAsOutputPin(GPIO_PORT_P6, GPIO_PIN1);
 	GPIO_setOutputLowOnPin(GPIO_PORT_P6, GPIO_PIN1);
-	dr_Delay_ms(tempo_ms);  // mínmo 50
+	DR_delay_ms(tempo_ms);  // mï¿½nmo 50
 	GPIO_setOutputHighOnPin(GPIO_PORT_P6, GPIO_PIN1);
-	dr_Delay_ms(tempo_ms);
+	DR_delay_ms(tempo_ms);
 }
 
-int dr_MPU6050_Read(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
+int DR_mpu6050_read(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 					uint8_t *data)
 {
 
@@ -108,7 +108,7 @@ int dr_MPU6050_Read(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 	moduleI2C->I2CSA = slaveAddr; /* setup slave address */
 	moduleI2C->CTLW0 |= 0x0010; /* enable transmitter */
 	moduleI2C->CTLW0 |= 0x0002; /* generate START and send slave address */
-	/* wait until slave address is sent *//*Essa flag não estar esperando*/
+	/* wait until slave address is sent *//*Essa flag nï¿½o estar esperando*/
 	while ((moduleI2C->CTLW0 & 2) && erro_watch[2] > 0)
 	{
 		erro_watch[2]--;
@@ -139,7 +139,7 @@ int dr_MPU6050_Read(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 	// dr_I2C_read() end
 	return 1;
 }
-int dr_MPU6050_ReadRaw(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
+int DR_mpu6050_readRaw(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 						uint8_t byteCount, uint8_t *data)
 {
 	/* Selecionar I2C */ //0.001ms

@@ -284,7 +284,7 @@ extern "C" {
 #define Dr_read_SW1      !GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN1);
 #define Dr_read_SW2      !GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN4);
 
-typedef struct _dr_pwm_parameters
+typedef struct
 {
 	bool fast_mode;
 	uint16_t timer_Prescaler;
@@ -415,7 +415,7 @@ extern void DR_uart_pin();
  * http://software-dl.ti.com/msp430/msp430_public_sw/mcu/msp430/MSP430BaudRateConverter/index.html
 
  */
-extern void DR_uart_config();
+void DR_uart_config(bool fast_mode);
 extern void DR_uart_init();
 //*****************************************************************************
 /*
@@ -534,10 +534,10 @@ extern double DR_t32_get_freq(uint_fast8_t timer);
 extern void DR_i2c_pin();
 extern void DR_i2c_config(uint_fast8_t n_I2C);
 extern void DR_i2c_init(uint_fast8_t n_I2C);
-extern void DR_i2c_read(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
-						uint8_t *data);
-extern void DR_i2c_write(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
-							uint8_t data);
+extern void DR_i2c_read(uint_fast8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
+					uint8_t *data);
+extern void DR_i2c_write(uint_fast8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
+					uint8_t data);
 extern int DR_i2c_readraw(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 							uint8_t byteCount, uint8_t *data);
 extern void DR_pmap_pin();

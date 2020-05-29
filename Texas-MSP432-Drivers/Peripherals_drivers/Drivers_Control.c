@@ -1,4 +1,4 @@
-#include <Drivers_Control.h>
+#include "Drivers_Control.h"
 void DR_leds_sw_pin()
 {
 	// Selecionar Fun��o dos Pinos
@@ -422,7 +422,7 @@ void DR_i2c_init(uint_fast8_t n_I2C)
 	case 3:
 		moduleI2C = EUSCI_B3_BASE;
 		break;
-	default
+	default:
 		moduleI2C = EUSCI_B0_BASE;
 		break;
 	}
