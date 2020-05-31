@@ -42,7 +42,10 @@ Reference_data Circle = { .ref_time = pi_2 }, Triangle, Straight, Saw;
 
 float angulos_atualizados[4];
 
-uint32_t status_flag_uart = 0;
+uint_fast8_t status_flag_uart = 0;
+uint_fast8_t status_flag_angle_update = 0;
+uint_fast8_t status_flag_print = 0;
+
 void Pd_Control_Law(Reference_data *reference)
 {
 //	Atualizar Valores de Referencia
@@ -100,9 +103,6 @@ int DR_angles_update(uint16_t n_sensor)
 		float Kal_Angle = -getAngle(&kalman_1, pitch, gyroY, Ts);
 		angulos_atualizados[1] = Kal_Angle;
 
-		float dif_ruido = (angulos_atualizados[1] - theta1.Th) * 1000.0f;
-		theta1.dif_ruido = abs(dif_ruido);
-
 		theta1.Th = angulos_atualizados[1];
 
 		return 1;
@@ -116,6 +116,17 @@ int DR_angles_update(uint16_t n_sensor)
 		return 0;
 	}
 }
+void interrupt_angles(){
+	DR_angles_update(0); /* Angle Theta1 Update*/
+	DR_angles_update(1);/* 'angulos_atualizados' update, Calculate for Kalman Filter*/
+	
+	 if(status_flag_print == 10){
+	 printf("\n\rangle_updated[1]: %f", angulos_atualizados[1]);
+	 status_flag_print = 0;
+	 }else{
+	 status_flag_print ++;}
+}
+
 int main(void)
 {	WDT_A_holdTimer();
 
@@ -127,49 +138,55 @@ int main(void)
 	/* Peripherals Config */
 	DR_uart_config(true);
 	DR_i2c_config(0);
+	DR_t32_config_Hz(0,100);
 	
 	/* Inicializar Programas*/
 	DR_leds_init();
 	DR_uart_init();
 	DR_i2c_init(0);
+	DR_t32_init(0);
 	
 	int16_t status_init;
-	DR_mpu6050_ligar(500);
+	DR_mpu6050_ligar(1000);
 	status_init = DR_mpu6050_init(&sensor_theta1);
 	if (status_init != 1)
-		printf("\n\rInicializa��o incorreta: %d", status_init);
+		printf("\n\rIncorrect startup: %d", status_init);
 
 	/* Interrupt Config */
 	DR_uart_interrupt_receive();
 	DR_interrupt_on();
+	DR_t32_interrupt_init(0,interrupt_angles);
 	
 	while (1)
 	{
-		DR_leds_alterar(contador);
-		DR_delay_s(1);
+		// DR_leds_alterar(contador);
+		// DR_delay_s(1);
+		if (status_flag_angle_update)
+		{
+			
+	
+			status_flag_angle_update = 0;
+		}
 
+		if (status_flag_print == 10)
+		{
+			
+		}
+		
+		
 		if (status_flag_uart)
 		{
 			contador = UART_receiveData(EUSCI_A0_BASE) - 48;
-			printf("\n\n\r-------Atualizando o valor para os Leds em: %d ---------",
-					contador);
+			printf("\n\n\r--Ledupdate(%d)",contador);
 			if (contador == 1)
 			{
 				int status_angulo;
-				status_angulo = DR_angles_update(0);
+				status_angulo = DR_angles_update(0); /* Angle Theta1 Update*/
 				DR_tick_start();
-				status_angulo = DR_angles_update(1);
+				status_angulo = DR_angles_update(1);/* 'angulos_atualizados' update, Calculate for Kalman Filter*/
 				DR_tick_stop(false);
-				printf("\n\rRetorno de atualiza��o[1] %d", status_angulo);
-				printf("\n\rAngulo_atualizado[1] :%f", angulos_atualizados[1]);
-				DR_tick_start();
-				status_angulo = DR_angles_update(2);
-				DR_tick_stop(false);
-				printf("\n\rRetorno de atualiza��o[2] %d", status_angulo);
-				printf("\n\rAngulo_atualizado[2] :%f", angulos_atualizados[1]);
-//				printf("\n\raccX:%f,accZ:%f,gyroY:%f\n\rpitch:%f,Kal_Angle:%f",
-//						accX, accZ, gyroY, pitch, Kal_Angle);
-
+				printf("\n\rUpdate_return[1]: %d", status_angulo);
+				printf("\n\rangle_updated[1]: %f", angulos_atualizados[1]);
 			}
 			if (contador == 2)
 			{	/*Atualizar Sensor Theta 1*/
@@ -238,6 +255,16 @@ int main(void)
 				Pd_Control_Law(&Circle); // 0.0183ms
 				DR_tick_stop(false);
 			}
+			if (contador == 7)
+			{	/* Diagnostic Satus */
+				Interrupt_disableInterrupt(INT_T32_INT1);			
+				printf("Diagnostic Erro[0]: %d",diagnostic_erro[0]);
+				printf("Diagnostic Erro[1]: %d",diagnostic_erro[1]);
+				printf("Diagnostic Erro[2]: %d",diagnostic_erro[2]);
+				printf("Diagnostic Erro[3]: %d",diagnostic_erro[3]);
+				printf("Diagnostic Erro[4]: %d",diagnostic_erro[4]);
+			}
+			
 			status_flag_uart = 0;
 		}
 	}

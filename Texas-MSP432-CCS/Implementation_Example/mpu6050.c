@@ -15,6 +15,7 @@ int DR_mpu6050_atualizar(dr_mpu_data_t *sensor)
 		{
 			DR_mpu6050_ligar(100);
 			DR_mpu6050_init(sensor);
+			diagnostic_erro[0]++;	// Comunication Error
 			return status_erro; // erro nos cabos de comunica��o
 
 		}
@@ -24,10 +25,11 @@ int DR_mpu6050_atualizar(dr_mpu_data_t *sensor)
 	{
 		DR_mpu6050_ligar(100);
 		DR_mpu6050_init(sensor);
+		diagnostic_erro[1]++; // Supply Error 
 		return -1; // erro nos cabos de alimenta��o
 	}
 
-	DR_i2c_readraw(sensor->I2C, sensor->address, 0x3B, 14, leitura);
+	DR_mpu6050_readraw(sensor->I2C, sensor->address, 0x3B, 14, leitura);// Ta dando erro aqui dentro
 	sensor->ax = (leitura[0] << 8) | (leitura[1]);
 	sensor->ay = (leitura[2] << 8) | (leitura[3]);
 	sensor->az = (leitura[4] << 8) | (leitura[5]);
@@ -104,6 +106,7 @@ int DR_mpu6050_read(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 	 */
 	erro_watch[2] = 500;
 	erro_watch[3] = 500;
+	erro_watch[4] = 500;
 
 	moduleI2C->I2CSA = slaveAddr; /* setup slave address */
 	moduleI2C->CTLW0 |= 0x0010; /* enable transmitter */
@@ -112,6 +115,7 @@ int DR_mpu6050_read(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 	while ((moduleI2C->CTLW0 & 2) && erro_watch[2] > 0)
 	{
 		erro_watch[2]--;
+		diagnostic_erro[2]++;	/*[2]Erro de ??*/
 	}
 	if (erro_watch[2] == 0)
 		return -2;
@@ -121,6 +125,7 @@ int DR_mpu6050_read(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 	while (!(moduleI2C->IFG & 2) && erro_watch[3] > 0)
 	{
 		erro_watch[3]--;
+		diagnostic_erro[3]++;	/*[3] Erro de ?*/
 	}
 
 	if (erro_watch[3] == 0)
@@ -131,15 +136,22 @@ int DR_mpu6050_read(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 	while (moduleI2C->CTLW0 & 2)
 		; /* wait till restart is finished */
 	moduleI2C->CTLW0 |= 0x0004; /* setup to send STOP after the byte is received */
-	while (!(moduleI2C->IFG & 1))
-		; /* wait till data is received */ // flag de erro aqui ?
+	
+	/* wait till data is received */ // flag de erro aqui simm kk
+	while (!(moduleI2C->IFG & 1) && erro_watch[4] > 0){
+		erro_watch[4]--;
+		diagnostic_erro[4]++;
+	}
+	if (erro_watch[4] == 0)
+		return -4;
+
 	*data = moduleI2C->RXBUF; /* read the received data */
 	while (moduleI2C->CTLW0 & 4)
 		; /* wait until STOP is sent */
 	// dr_I2C_read() end
 	return 1;
 }
-int DR_mpu6050_readRaw(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
+int DR_mpu6050_readraw(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 						uint8_t byteCount, uint8_t *data)
 {
 	/* Selecionar I2C */ //0.001ms
@@ -184,7 +196,7 @@ int DR_mpu6050_readRaw(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 		if (byteCount == 1) /* when only one byte of data is left */
 			moduleI2C->CTLW0 |= 0x0004; /* setup to send STOP after the last byte is received */
 
-		while (!(moduleI2C->IFG & 1))
+		while (!(moduleI2C->IFG & 1))   // Error Aqui !!!
 			; /* wait till data is received */
 		*data++ = moduleI2C->RXBUF; /* read the received data */
 		byteCount--;

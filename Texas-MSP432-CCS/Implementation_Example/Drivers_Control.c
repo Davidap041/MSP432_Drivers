@@ -276,10 +276,11 @@ void SysTick_Handler(void)
 		estouro_Systick--;
 	}
 }
-void DR_t32_config_seg(uint32_t timer, float tempo_seg)
+void DR_t32_config_seg(uint_fast8_t n_Timer, float tempo_seg)
 {	/* Fazer um estudo mais preciso dos limites dessa função */
+	uint32_t timer;
 	/* Sele��o do Timer */
-	if (timer == 0)
+	if (n_Timer == 0)
 		timer = TIMER32_0_BASE;
 	else
 		timer = TIMER32_1_BASE;
@@ -295,10 +296,11 @@ void DR_t32_config_seg(uint32_t timer, float tempo_seg)
 						TIMER32_PERIODIC_MODE);
 	Timer32_setCount(timer, count_period);
 }
-void DR_t32_config_Hz(uint32_t timer, float freq_Hz)
+void DR_t32_config_Hz(uint_fast8_t n_Timer, float freq_Hz)
 {	/* Fazer um estudo mais preciso dos limites dessa função */
+	uint32_t timer;
 	/* Sele��o do Timer */
-	if (timer == 0)
+	if (n_Timer == 0)
 		timer = TIMER32_0_BASE;
 	else
 		timer = TIMER32_1_BASE;
@@ -314,20 +316,22 @@ void DR_t32_config_Hz(uint32_t timer, float freq_Hz)
 						TIMER32_PERIODIC_MODE);
 	Timer32_setCount(timer, count_period);
 }
-void DR_t32_init(uint32_t timer)
+void DR_t32_init(uint_fast8_t n_Timer)
 {
+	uint32_t timer;
 	/* Sele��o do Timer */
-	if (timer == 0)
+	if (n_Timer == 0)
 		timer = TIMER32_0_BASE;
 	else
 		timer = TIMER32_1_BASE;
 
 	Timer32_startTimer(timer, false);
 }
-void DR_t32_interrupt_init(int timer, void rotina(void))
+void DR_t32_interrupt_init(uint_fast8_t n_Timer, void rotina(void))
 {
 	/* Sele��o do Timer */
-	if (timer == 0)
+	uint32_t timer;
+	if (n_Timer == 0)
 		timer = INT_T32_INT1;
 	else
 		timer = INT_T32_INT2;
@@ -335,10 +339,10 @@ void DR_t32_interrupt_init(int timer, void rotina(void))
 	Interrupt_registerInterrupt(timer, rotina);
 	Interrupt_enableInterrupt(timer);
 }
-double DR_t32_getPeriod_seg(uint_fast8_t timer)
+double DR_t32_getPeriod_seg(uint_fast8_t n_Timer)
 {	/* Sele��o do Timer 0 ou 1 */
 	double period;
-	if (timer == 0)
+	if (n_Timer == 0)
 		period = TIMER32_1->LOAD * 256;
 	else
 		period = TIMER32_2->LOAD * 256;
@@ -347,11 +351,11 @@ double DR_t32_getPeriod_seg(uint_fast8_t timer)
 	period = period / (CS_getMCLK());
 	return period;
 }
-double DR_t32_get_freq(uint_fast8_t timer)
+double DR_t32_get_freq(uint_fast8_t n_Timer)
 {
 	double period;
 	/* Sele��o do Timer */
-	if (timer == 0)
+	if (n_Timer == 0)
 		period = TIMER32_1->LOAD;
 	else
 		period = TIMER32_2->LOAD;
@@ -552,7 +556,7 @@ int DR_i2c_readraw(uint_fast8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 	while ((moduleI2C->CTLW0 & 2))
 		; /* wait until slave address is sent */
 	moduleI2C->TXBUF = memAddr; /* send memory address to slave */
-	while (!(moduleI2C->IFG & 2))
+	while (!(moduleI2C->IFG & 2)) // Error Here !!!!
 		; /* wait till last transmit is done */
 	moduleI2C->CTLW0 &= ~0x0010; /* enable receiver */
 	moduleI2C->CTLW0 |= 0x0002; /* generate RESTART and send slave address */

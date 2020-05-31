@@ -58,6 +58,7 @@ typedef struct
 } dr_mpu_data_t;
 
 int16_t erro_watch[5];
+uint32_t diagnostic_erro[5];
 extern int DR_mpu6050_atualizar(dr_mpu_data_t *sensor);
 extern int DR_mpu6050_init(dr_mpu_data_t *sensor);
 extern void DR_mpu6050_ligar(uint16_t tempo_ms);

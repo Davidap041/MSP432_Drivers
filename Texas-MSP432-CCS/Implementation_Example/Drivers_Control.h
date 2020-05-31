@@ -493,17 +493,17 @@ extern void SysTick_Handler(void);
  *           define o tempo em segundos que a fun��o ser� chamada.
  * \return noce
  */
-extern void DR_t32_config_seg(uint32_t timer, float tempo_seg);
+extern void DR_t32_config_seg(uint_fast8_t n_Timer, float tempo_seg);
 //*****************************************************************************
 /*
- * \brief Essa fun��o d� o start no T32 para come�ar a contagem
- * obs1: o T32 deve ser incializado apartir das fun��es dr_T32_init_x antes do Start
- * obs2: aconselha-se configurar a interrup��o antes do Start
- * \param none
- * \return none
+ * This function start in T32 for start count
+ * *obs1: o T32 deve ser incializado apartir das funcoes dr_T32_init_x antes do Start
+ * *obs2: aconselha-se configurar a interrupcao antes do Start
+ * param: none
+ * return none
  */
-extern void DR_t32_config_Hz(uint32_t timer, float freq_Hz);
-extern void DR_t32_init(uint32_t timer);
+extern void DR_t32_config_Hz(uint_fast8_t n_Timer, float freq_Hz);
+extern void DR_t32_init(uint_fast8_t n_Timer);
 //*****************************************************************************
 /*
  * \brief Essa fun��o registra e habilita a interrup��o que ser� usada pelo T32
@@ -513,7 +513,7 @@ extern void DR_t32_init(uint32_t timer);
  *       T32 pr� configurado pelas fun��es dr_T32_init_x
  * \return none
  */
-extern void DR_t32_interrupt_init(int timer, void rotina(void));
+extern void DR_t32_interrupt_init(uint_fast8_t n_Timer, void rotina(void));
 //*****************************************************************************
 /*
  * \brief Essa fun��o retorna o valor exato que est� configurado a interrup��o
@@ -534,6 +534,7 @@ extern double DR_t32_getPeriod_seg(uint_fast8_t timer);
  *       retorna o valor de Frequ�ncia registrado nos registrados internos do T32
  */
 extern double DR_t32_get_freq(uint_fast8_t timer);
+
 extern void DR_i2c_pin();
 extern void DR_i2c_config(uint_fast8_t n_I2C);
 extern void DR_i2c_init(uint_fast8_t n_I2C);
