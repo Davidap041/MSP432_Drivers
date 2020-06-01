@@ -55,6 +55,10 @@ typedef struct
 	int16_t gy;
 	int16_t gz;
 
+	/* Variáveis de entrada do Filtro*/
+	float ang_pitch;
+	float ang_gyro;
+
 } dr_mpu_data_t;
 
 int16_t erro_watch[5];

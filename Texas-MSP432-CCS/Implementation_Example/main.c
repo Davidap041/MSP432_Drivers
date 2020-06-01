@@ -45,6 +45,9 @@ float angulos_atualizados[4];
 uint_fast8_t status_flag_uart = 0;
 uint_fast8_t status_flag_angle_update = 0;
 uint_fast8_t status_flag_print = 0;
+uint_fast16_t status_flag_diagnostic = 0;
+double tempo_processamento = 0;
+/* For Debug graph*/
 
 void Pd_Control_Law(Reference_data *reference)
 {
@@ -97,8 +100,10 @@ int DR_angles_update(uint16_t n_sensor)
 		float accX = sensor_theta1.ax * g * ACC_RESOLUTION;
 		float accZ = sensor_theta1.az * g * ACC_RESOLUTION;
 		float gyroY = sensor_theta1.gy * 1.3323e-04f;
-
+		sensor_theta1.ang_gyro = gyroY;
+		
 		float pitch = atan2f(-accX, accZ);
+		sensor_theta1.ang_pitch = pitch;
 
 		float Kal_Angle = -getAngle(&kalman_1, pitch, gyroY, Ts);
 		angulos_atualizados[1] = Kal_Angle;
@@ -116,15 +121,32 @@ int DR_angles_update(uint16_t n_sensor)
 		return 0;
 	}
 }
+
 void interrupt_angles(){
-	DR_angles_update(0); /* Angle Theta1 Update*/
+    // Desativar a flag
+    Timer32_clearInterruptFlag(TIMER32_0_BASE);
+    tempo_processamento = DR_tick_stop(false);
+    DR_tick_start();
+
+    DR_angles_update(0); /* Angle Theta1 Update*/
 	DR_angles_update(1);/* 'angulos_atualizados' update, Calculate for Kalman Filter*/
 	
+
 	 if(status_flag_print == 10){
 	 printf("\n\rangle_updated[1]: %f", angulos_atualizados[1]);
+	 printf("\n\r tempo_processamento = %0.4fms",tempo_processamento);
 	 status_flag_print = 0;
 	 }else{
 	 status_flag_print ++;}
+	 if(status_flag_diagnostic == 500){		
+		 uint_fast8_t k = 0;
+		for (k = 0 ;k < 5 ; k++ ){
+		diagnostic_erro[k] = 0;
+		}
+		status_flag_diagnostic = 0;
+	 }else{
+		 status_flag_diagnostic ++;
+	 }
 }
 
 int main(void)
@@ -159,21 +181,7 @@ int main(void)
 	
 	while (1)
 	{
-		// DR_leds_alterar(contador);
-		// DR_delay_s(1);
-		if (status_flag_angle_update)
-		{
-			
-	
-			status_flag_angle_update = 0;
-		}
 
-		if (status_flag_print == 10)
-		{
-			
-		}
-		
-		
 		if (status_flag_uart)
 		{
 			contador = UART_receiveData(EUSCI_A0_BASE) - 48;

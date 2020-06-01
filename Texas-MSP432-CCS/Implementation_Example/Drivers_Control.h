@@ -474,7 +474,7 @@ extern uint32_t DR_tick_start();
  * \param None
  * \return Valor de Ticks entre o Start e o Stop
  */
-extern uint32_t DR_tick_stop(bool ultra_precision_mode);
+extern double DR_tick_stop(bool ultra_precision_mode);
 //*****************************************************************************
 /*
  * \brief Essa � a rotina de interrup��o pr� configurada que � chamado caso haja um estouro

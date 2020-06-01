@@ -246,7 +246,7 @@ uint32_t DR_tick_start()
 	SysTick_enableModule();       	// inicia de fato a contagem
 	return SysTick_getValue();
 }
-uint32_t DR_tick_stop(bool ultra_precision_mode)
+double DR_tick_stop(bool ultra_precision_mode)
 {
 	uint32_t tick = SysTick_getValue();      // para a contagem
 
@@ -259,9 +259,8 @@ uint32_t DR_tick_stop(bool ultra_precision_mode)
 	SysTick_disableInterrupt();
 	SysTick_disableModule();
 	if(!ultra_precision_mode)// todas essas fun��es duram em torno de 0.71 ms
-	printf("\n\rO valor do Systick: %.4fms,MCLK:%.2fMHz", tempo_ms, rate);
-	printf("\n\rO valor do Systick: %.4fms,MCLK:%.2fMHz", tempo_us, rate);
-	return tick;
+	return tempo_ms;    //printf("\n\rO valor do Systick: %.4fms,MCLK:%.2fMHz", tempo_ms, rate);
+	return tempo_us;    //	printf("\n\rO valor do Systick: %.4fms,MCLK:%.2fMHz", tempo_us, rate);
 }
 void SysTick_Handler(void)
 {

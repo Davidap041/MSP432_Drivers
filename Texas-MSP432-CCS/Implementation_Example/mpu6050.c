@@ -30,13 +30,13 @@ int DR_mpu6050_atualizar(dr_mpu_data_t *sensor)
 	}
 
 	DR_mpu6050_readraw(sensor->I2C, sensor->address, 0x3B, 14, leitura);// Ta dando erro aqui dentro
-	sensor->ax = (leitura[0] << 8) | (leitura[1]);
-	sensor->ay = (leitura[2] << 8) | (leitura[3]);
-	sensor->az = (leitura[4] << 8) | (leitura[5]);
-	sensor->temp = (leitura[6] << 8) | (leitura[7]);
-	sensor->gx = (leitura[8] << 8) | (leitura[9]);
-	sensor->gy = (leitura[10] << 8) | (leitura[11]);
-	sensor->gz = (leitura[12] << 8) | (leitura[13]);
+	sensor->ax =	(leitura[0] << 8) | (leitura[1]);
+	sensor->ay = 	(leitura[2] << 8) | (leitura[3]);
+	sensor->az = 	(leitura[4] << 8) | (leitura[5]);
+	sensor->temp =  (leitura[6] << 8) | (leitura[7]);
+	sensor->gx = 	(leitura[8] << 8) | (leitura[9]);
+	sensor->gy =	(leitura[10] << 8) | (leitura[11]);
+	sensor->gz = 	(leitura[12] << 8) | (leitura[13]);
 	return 1;
 }
 
