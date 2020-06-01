@@ -599,8 +599,8 @@ void DR_pwm_pin()
 	GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA0.1
 	GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN5,
 	GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA0.2
-	// GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN6,
-	// GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA0.3
+	//  GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN6,
+	//  GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA0.3
 	// GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN4,
 	// GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA0.4
 	GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P5, GPIO_PIN6,

@@ -25,27 +25,27 @@ void EUSCIA0_IRQHandler(void)
 dr_pwm_parameters PWM_0 = {
 	.timer = TIMER_A0_BASE,
 	.fast_mode = true,
-	.timer_Prescaler = 64,
+	.timer_Prescaler = 4,
 	.true_Sawtooth_not_triangular = true,
-	.period_count = 60000,
+	.period_count = 60000, //60360 = 50 Hz(fechado, osciloscópio)
 	.pwm_channel = 1,
 	.outputmode = TIMER_A_OUTPUTMODE_RESET_SET
 };
 dr_pwm_parameters PWM_1 = {
 	.timer = TIMER_A0_BASE,
 	.fast_mode = true,
-	.timer_Prescaler = 64,
+	.timer_Prescaler = 4,
 	.true_Sawtooth_not_triangular = true,
-	.period_count = 60000,
+	.period_count = 60000,	// 60000 = 50,33Hz (osciloscópio)
 	.pwm_channel = 2,
 	.outputmode = TIMER_A_OUTPUTMODE_RESET_SET
 };
 dr_pwm_parameters PWM_2 = {
 	.timer = TIMER_A2_BASE,
 	.fast_mode = true,
-	.timer_Prescaler = 64,
+	.timer_Prescaler = 4,
 	.true_Sawtooth_not_triangular = true,
-	.period_count = 60000,
+	.period_count = 59990,
 	.pwm_channel = 1,
 	.outputmode = TIMER_A_OUTPUTMODE_RESET_SET
 };
