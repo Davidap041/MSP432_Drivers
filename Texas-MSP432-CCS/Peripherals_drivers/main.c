@@ -7,20 +7,8 @@
 #include <inttypes.h>
 #include "Drivers_Control.h"
 #include "mpu6050.h"
-/* Global Variables */
-uint16_t contador = 0; // Contador usado para alterar os leds
 
-/* Flags */
-uint_fast8_t status_flag_uart = 0;
-
-/* Interruptions Handler */
-void EUSCIA0_IRQHandler(void)
-{
-	UART_clearInterruptFlag(EUSCI_A0_BASE, EUSCI_A_UART_RECEIVE_INTERRUPT_FLAG);
-	status_flag_uart = 1; // Flag usada na função main
-}
-
-
+/*Intances Initial*/
 // PWM Configuration for Channel
 dr_pwm_parameters PWM_0 = {
 	.timer = TIMER_A0_BASE,
@@ -49,6 +37,19 @@ dr_pwm_parameters PWM_2 = {
 	.pwm_channel = 1,
 	.outputmode = TIMER_A_OUTPUTMODE_RESET_SET
 };
+/* Global Variables */
+uint16_t contador = 0; // Contador usado para alterar os leds
+
+/* Flags */
+uint_fast8_t status_flag_uart = 0;
+
+/* Interruptions Handler */
+void EUSCIA0_IRQHandler(void)
+{
+	UART_clearInterruptFlag(EUSCI_A0_BASE, EUSCI_A_UART_RECEIVE_INTERRUPT_FLAG);
+	status_flag_uart = 1; // Flag usada na função main
+}
+
 
 int main(void)
 {
@@ -58,6 +59,7 @@ int main(void)
 	DR_leds_sw_pin();
 	DR_pwm_pin();
 	DR_uart_pin();
+	DR_i2c_pin();
 
 
 	/* Peripherals Config */
