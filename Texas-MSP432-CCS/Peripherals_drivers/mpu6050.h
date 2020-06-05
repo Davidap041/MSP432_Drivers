@@ -34,6 +34,9 @@ extern "C" {
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h> // usar essa definiï¿½ï¿½o para o CodeComposer
 #include "Drivers_Control.h"
 
+#define g 9.8f
+#define ACC_RESOLUTION (1.0f/16384.0f)
+
 typedef struct
 {
 	uint8_t identification;
@@ -52,9 +55,14 @@ typedef struct
 	int16_t gy;
 	int16_t gz;
 
+	/* Variáveis de entrada do Filtro*/
+	float ang_pitch;
+	float ang_gyro;
+
 } dr_mpu_data_t;
 
 int16_t erro_watch[5];
+uint32_t diagnostic_erro[5];
 extern int DR_mpu6050_atualizar(dr_mpu_data_t *sensor);
 extern int DR_mpu6050_init(dr_mpu_data_t *sensor);
 extern void DR_mpu6050_ligar(uint16_t tempo_ms);
