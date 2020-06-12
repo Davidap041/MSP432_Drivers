@@ -55,14 +55,17 @@ typedef struct
 	int16_t gy;
 	int16_t gz;
 
-	/* Variáveis de entrada do Filtro*/
+	/* Variï¿½veis de entrada do Filtro*/
 	float ang_pitch;
 	float ang_gyro;
+	/* Final Angle Update by kalman Filter*/
+	float ang_updated;
 
 } dr_mpu_data_t;
 
 int16_t erro_watch[5];
 uint32_t diagnostic_erro[5];
+/*Atualizar valores de ax,ay,az,temp,gx,gy,gz*/
 extern int DR_mpu6050_atualizar(dr_mpu_data_t *sensor);
 extern int DR_mpu6050_init(dr_mpu_data_t *sensor);
 extern void DR_mpu6050_ligar(uint16_t tempo_ms);

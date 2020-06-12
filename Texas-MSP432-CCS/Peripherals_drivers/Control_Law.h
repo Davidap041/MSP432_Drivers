@@ -9,8 +9,8 @@
 #define CONTROL_LAW_H_
 
 typedef struct {
-//	Variáveis de Controle PD
-	int identification;
+//	Variaveis de Controle PD
+	int identification;	// link identification
 
 	int dif_ruido;
 	float estimativa_motor;
@@ -18,10 +18,10 @@ typedef struct {
 
 	float kp_pd;
 	float kv_pd;
-	float m;
-	float b;
-	float k;
-	float u;
+	float m;	
+	float b;	
+	float k;	
+	float u;	// Control Signal
 	float means;
 
 	float erro_atual;
@@ -37,31 +37,50 @@ typedef struct {
 	float dTh_ref;
 	float Th_ref; // Referências do Ângulo do Servo;
 	float Th_ref_anterior; // Referências do Ângulo do Servo;
+
 //	Variáveis do Saturador
 	float upper_limit;
 	float lower_limit;
 
-} Angle;
+} Ctrl_Law_angle_data;
 
-void Control_Signal(Angle *elo) {
-	elo->erro_atual = (elo->Th_ref - elo->Th);
-	elo->erro_derivadas = (elo->dTh_ref - elo->dTh);
+/*Calculate Control Signal "u" by PD Control (look if the order is right!)*/
+void Pd_Control_Law(Ctrl_Law_angle_data *link, float reference) {
+//	Update Reference Value
+	link->Th_ref = reference;
+// Update and calculate Reference with delay
+	link->dTh_ref = link->Th_ref - link->Th_ref_anterior;
+// Store Reference Value for next interation
+	link->Th_ref_anterior = link->Th_ref;
+// Update and calculate dTh (Angle with delay)
+	link->dTh = link->Th - link->Th_anterior;
+//	Store Angle Value for next interation
+	link->Th_anterior = link->Th;
 
-	elo->pd_pp1 = (elo->k * elo->Th) + (elo->b * elo->dTh);
-	elo->pd_pp2 = elo->m
-			* (elo->kp_pd * elo->erro_atual + elo->kv_pd * elo->erro_derivadas);
+// Calculate Signal Control u[k]
+	link->erro_atual = (link->Th_ref - link->Th);  
+	link->erro_derivadas = (link->dTh_ref - link->dTh);
 
-	elo->u = elo->pd_pp1 + elo->pd_pp2 + elo->means;
+	link->pd_pp1 = (link->k * link->Th) + (link->b * link->dTh);
+	link->pd_pp2 = link->m
+			* (link->kp_pd * link->erro_atual + link->kv_pd * link->erro_derivadas);
 
-//	elo->u = elo->u / 10;
-	// Implementação dos saturadores saturadores
-	if (elo->u > elo->upper_limit) {
-		elo->u = elo->upper_limit;
+	link->u = link->pd_pp1 + link->pd_pp2 + link->means;
+
+// Implementação dos saturadores (look if need store the true value of u[k])
+	if (link->u > link->upper_limit) {
+		link->u = link->upper_limit;
 	}
-	if (elo->u < elo->lower_limit) {
-		elo->u = elo->lower_limit;
+	if (link->u < link->lower_limit) {
+		link->u = link->lower_limit;
 	}
-//	printf("/r/nControl Signal: %f", elo->u);
+}
+/* Calculate Control Signal "u" by Open Loop Control (look if the order is right!)*/
+void Open_Loop_Control_Law(Ctrl_Law_angle_data *link, float reference) {
+// Update Reference Value
+	link->Th_ref = reference;
+// Set u with Reference Value	
+	link->u = link->Th_ref;
 }
 
 

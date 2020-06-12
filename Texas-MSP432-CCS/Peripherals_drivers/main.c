@@ -1,211 +1,125 @@
-/* DriverLib Includes */
-
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <math.h>
+/* DriverLib Includes */
 #include "Drivers_Control.h"
 #include "mpu6050.h"
 #include "Kalman.h"
 #include "Control_Law.h"
 #include "function.h"
 
-uint8_t RXData[2];
-uint8_t contador = 1;
-// Vari�veis relacionadas ao filtro de kalman
-// Instancia dos Filtros
-Kalman_data kalman_0 = { .Q_angle = 0.1f, .Q_bias = 0.01f, .R_measure = 0.03f,
-							.angle = 0, .bias = 0 };
-Kalman_data kalman_1 = { .Q_angle = 0.001f, .Q_bias = 0.0001f, .R_measure =
-									0.03f,
-							.angle = 0.0f, .bias = 0.0f };
-Kalman_data kalman_2 = { .Q_angle = 0.001f, .Q_bias = 0.0001f, .R_measure =
-									0.03f,
-							.angle = 0.0f, .bias = 0.0f };
-Kalman_data kalman_3 = { .Q_angle = 0.0001f, .Q_bias = 0.01f,
-							.R_measure = 0.03f, .angle = 0.0f, .bias = 0.0f };
-
-// Vari�veis relacionadas aos �ngulos dos elos e controlador PD
-Angle theta1 = { .identification = 1.0f, .kp_pd = 2.7f, .kv_pd = 0.3f, .m =
-							0.2390f,
-					.b = 0.98597f, .k = 0.001232f, .upper_limit = 1.972f,
-					.lower_limit = 0.562f, .means = 1.3065f, .Th_ref = 0.0f };
-
-// Defini��o do endere�amento dos 4 sensores
+/* Instancia dos Objetos */
+// PWM Configuration for Channel
+// Drive PWM for link Rho in 50Hz
+dr_pwm_parameters PWM_Rho = {
+	.identification = 0,
+	.timer = TIMER_A0_BASE,
+	.fast_mode = true,
+	.timer_Prescaler = 4,
+	.true_Sawtooth_not_triangular = true,
+	.period_count = 60000, //60360 = 50 Hz(fechado, osciloscópio)
+	.pwm_channel = 1,
+	.outputmode = TIMER_A_OUTPUTMODE_RESET_SET
+};
+// Drive PWM for link Theta1 in 50Hz
+dr_pwm_parameters PWM_Theta1 = {
+	.identification = 1,
+	.timer = TIMER_A0_BASE,
+	.fast_mode = true,
+	.timer_Prescaler = 4,
+	.true_Sawtooth_not_triangular = true,
+	.period_count = 60000,	// 60000 = 50,33Hz (osciloscópio)
+	.pwm_channel = 2,
+	.outputmode = TIMER_A_OUTPUTMODE_RESET_SET
+};
+// Drive PWM for link Theta2 in 50Hz
+dr_pwm_parameters PWM_Theta2 = {
+	.identification = 2,
+	.timer = TIMER_A0_BASE,
+	.fast_mode = true,
+	.timer_Prescaler = 4,
+	.true_Sawtooth_not_triangular = true,
+	.period_count = 60000,
+	.pwm_channel = 3,
+	.outputmode = TIMER_A_OUTPUTMODE_RESET_SET
+};
+// Drive PWM for link Theta3 in 50Hz
+dr_pwm_parameters PWM_Theta3 = {
+	.identification = 3,
+	.timer = TIMER_A0_BASE,
+	.fast_mode = true,
+	.timer_Prescaler = 4,
+	.true_Sawtooth_not_triangular = true,
+	.period_count = 60000,
+	.pwm_channel = 4,
+	.outputmode = TIMER_A_OUTPUTMODE_RESET_SET
+};
+// Sensor Configuration and Address
+// Sensor (accelerometer + Gyroscope) for measure angle Rho
 dr_mpu_data_t sensor_rho = { .identification = 0, .address = 0x68, .I2C = 0, };
+// Sensor (accelerometer + Gyroscope) for measure angle Theta 1
 dr_mpu_data_t sensor_theta1 = { .identification = 1, .address = 0x69, .I2C = 0, };
-dr_mpu_data_t sensor_theta2 = { .identification = 2, .address = 0x68, .I2C = 2, };
-dr_mpu_data_t sensor_theta3 = { .identification = 3, .address = 0x69, .I2C = 2, };
-// Vari�veis para instancias as refer�ncias
+// Sensor (accelerometer + Gyroscope) for measure angle Theta 2
+dr_mpu_data_t sensor_theta2 = { .identification = 2, .address = 0x68, .I2C = 1, };
+// Sensor (accelerometer + Gyroscope) for measure angle Theta 3
+dr_mpu_data_t sensor_theta3 = { .identification = 3, .address = 0x69, .I2C = 1, };
+
+// Filters Instance 
+// Kalman Values for Covariance, erro Measure for measure Angle Rho
+Kalman_data kalman_0 = { .Q_angle = 0.1f, .Q_bias = 0.01f,     .R_measure = 0.03f,	.angle = 0, .bias = 0 };
+// Kalman Values for Covariance, erro Measure for measure Angle Theta 1
+Kalman_data kalman_1 = { .Q_angle = 0.001f, .Q_bias = 0.0001f, .R_measure =0.03f, .angle = 0.0f, .bias = 0.0f };
+// Kalman Values for Covariance, erro Measure for measure Angle Theta 2
+Kalman_data kalman_2 = { .Q_angle = 0.001f, .Q_bias = 0.0001f, .R_measure = 0.03f,.angle = 0.0f, .bias = 0.0f };
+// Kalman Values for Covariance, erro Measure for measure Angle Theta 3
+Kalman_data kalman_3 = { .Q_angle = 0.0001f, .Q_bias = 0.01f,  .R_measure = 0.03f, .angle = 0.0f, .bias = 0.0f };
+ 
+/*PD links parameters*/
+// PD parameters and signals to control the link rho
+Ctrl_Law_angle_data rho = { .identification = 0, .kp_pd = 2.7, .kv_pd = 0.3, .m = 0.2940, .b =
+		1.02549, .k = 0.00044956, .upper_limit = rho_angle_max, .lower_limit =
+rho_angle_min, .means = 0, .Th_ref = 0 };
+// PD parameters and signals to control the link Theta 1
+Ctrl_Law_angle_data theta1 = { .identification = 1, .kp_pd = 2.7, .kv_pd = 0.3, .m = 0.2390,
+		.b = 0.98597, .k = 0.001232, .upper_limit = theta1_angle_max,
+		.lower_limit = theta1_angle_min, .means = 1.3065, .Th_ref = 0 };
+// PD parameters and signals to control the link Theta 2
+Ctrl_Law_angle_data theta2 = { .identification = 2, .kp_pd = 2.7, .kv_pd = 0.3, .m = 0.1440,
+		.b = 0.951269, .k = 0.009040, .upper_limit = theta2_angle_min,
+		.lower_limit = theta2_angle_max, .means = 1.9899, .Th_ref = 0 };
+// PD parameters and signals to control the link Theta 3
+Ctrl_Law_angle_data theta3 =
+		{ .identification = 3, .kp_pd = 5, .kv_pd = 0.6, .m = 0.072, .b =
+				1.209418, .k = 0.006143, .upper_limit =
+		theta3_angle_max, .lower_limit = theta3_angle_min, .means = 1.3718,
+				.Th_ref = 0 };
+
+// References Instance
 Reference_data Circle = { .ref_time = pi_2 }, Triangle, Straight, Saw;
 
-float angulos_atualizados[4];
+/* Funtions Prototype */
+/* Configure pins interruptions */
+void DR_debug_pin();
+/* Interrupt routine in 100Hz for control law*/	
+void DR_interrupt_100Hz();
+/*Interrupt for read sensors, execute control law and drive motors*/
+void Interruption_Program(); 
+/*Update motor Values with new u[k]*/
+void Varredura_Motores(); 
+/*Calculate Open Loop control Law for all links*/
+void Calculate_OL_all_links(Reference_data *Trajectory);
+/*Calculate PD control Law for all links*/
+void Calculate_PD_all_links(Reference_data *Trajectory);
+/* All sensor update for Control Law */
+void Varredura_Sensores();
+/* Update Actual Value of angle link and update *links.Th*/
+void Angles_update(int sensor);
 
+/* Global Variables*/
 uint_fast8_t status_flag_uart = 0;
-uint_fast8_t status_flag_angle_update = 0;
-uint_fast8_t status_flag_print = 0;
-uint_fast16_t status_flag_diagnostic = 0;
-double tempo_processamento = 0;
-/* For Debug graph*/
-uint8_t RXData[2];
-uint8_t leitura[14];
-float magCalibration[3];
-float magValue[3];
-float magbias[3];
-#define mRes 10.*4912./32760.0
-
-float Magnetometer_offset[3];
-
-
-int DR_angles_update(uint16_t n_sensor)
-{
-	if (n_sensor == 0)
-	{
-		int status_atualizar = DR_mpu6050_atualizar(&sensor_theta1);
-	}
-	if (n_sensor == 1)
-	{
-		/* Atualizar leitura do �ngulo theta 1*/
-		float accX = sensor_theta1.ax * g * ACC_RESOLUTION;
-		float accZ = sensor_theta1.az * g * ACC_RESOLUTION;
-		float gyroY = sensor_theta1.gy * 1.3323e-04f;
-		
-		sensor_theta1.ang_gyro = gyroY;
-		
-		float pitch = atan2f(-accX, accZ);
-		sensor_theta1.ang_pitch = pitch;
-
-		float Kal_Angle = -getAngle(&kalman_1, pitch, gyroY, Ts);
-		angulos_atualizados[1] = Kal_Angle;
-
-		theta1.Th = angulos_atualizados[1];
-
-		return 1;
-	}
-	if (n_sensor == 2)
-	{
-		return -3;
-	}
-	else
-	{
-		return 0;
-	}
-}
-
-void interrupt_angles(){
-    // Desativar a flag
-    Timer32_clearInterruptFlag(TIMER32_0_BASE);
-    tempo_processamento = DR_tick_stop(false);
-    DR_tick_start();
-    // Leitura do Acelerêometro e Giroscopio
-	DR_i2c_readraw(0,0x68,0x3B,14,leitura);
-	sensor_rho.ax =		(leitura[0] << 8) | (leitura[1]); // AccXH XL
-	sensor_rho.ay = 	(leitura[2] << 8) | (leitura[3]); 
-	sensor_rho.az = 	(leitura[4] << 8) | (leitura[5]);
-	sensor_rho.temp =  	(leitura[6] << 8) | (leitura[7]);
-	sensor_rho.gx = 	(leitura[8] << 8) | (leitura[9]);
-	sensor_rho.gy =		(leitura[10] << 8) | (leitura[11]);
-	sensor_rho.gz = 	(leitura[12] << 8) | (leitura[13]);
-	// Leitura do Magnetometro
-	DR_i2c_readraw(0,0x0C,0x03,7,leitura);
-	sensor_theta1.ax =		(leitura[1] << 8) | (leitura[0]); // HXL HXH
-	sensor_theta1.ay = 		(leitura[3] << 8) | (leitura[2]); 
-	sensor_theta1.az = 		(leitura[4] << 8) | (leitura[4]);
-	sensor_theta1.identification = leitura[7];	// Dado pronto 
-	// // Calculo do magnetômetro
-	// magbias[0] = +470.f;  // User environmental x-axis correction in milliGauss, should be automatically calculated
-    // magbias[1] = +120.f;  // User environmental x-axis correction in milliGauss
-    // magbias[2] = +125.f;  // User environmental x-axis correction in milliGauss
-
-	// magValue[0] = (float)sensor_theta1.ax*mRes*magCalibration[0] - magbias[0];
-	// magValue[1] = (float)sensor_theta1.ay*mRes*magCalibration[1] - magbias[1];
-	// magValue[2] = (float)sensor_theta1.az*mRes*magCalibration[2] - magbias[2];
-
-	 magValue[0] = (float)sensor_theta1.ax - Magnetometer_offset[0];
-	 magValue[1] = (float)sensor_theta1.ay - Magnetometer_offset[1];
-	 magValue[2] = (float)sensor_theta1.az - Magnetometer_offset[2];
-
-
-	 if(status_flag_print == 10){
-	 status_flag_print = 0;
-	 }else{
-	 status_flag_print ++;}
-	 if(status_flag_diagnostic == 500){
-	 }
-}
-void Calibrar_Magnetometro(float *destination){
-    int i = 100;
-    int Max_Value[3];
-    int Min_Value[3];
-
-    DR_i2c_readraw(0,0x0C,0x03,7,leitura);
-    sensor_theta1.ax =      (leitura[1] << 8) | (leitura[0]); // HXL HXH
-    sensor_theta1.ay =      (leitura[3] << 8) | (leitura[2]);
-    sensor_theta1.az =      (leitura[4] << 8) | (leitura[4]);
-
-    Max_Value[0] = sensor_theta1.ax;
-	Min_Value[0] = sensor_theta1.ax;
-	Max_Value[1] = sensor_theta1.ay;
-	Min_Value[1] = sensor_theta1.ay;
-	Max_Value[2] = sensor_theta1.az;
-	Min_Value[2] = sensor_theta1.az;
-
-    while(i>0){
-		DR_i2c_readraw(0,0x0C,0x03,7,leitura);
-		sensor_theta1.ax =      (leitura[1] << 8) | (leitura[0]); // HXL HXH
-		sensor_theta1.ay =      (leitura[3] << 8) | (leitura[2]);
-		sensor_theta1.az =      (leitura[4] << 8) | (leitura[4]);
-			// Maior e menor valor no eixo X
-			if(sensor_theta1.ax > Max_Value[0]){
-				Max_Value[0] = sensor_theta1.ax;
-			}
-			if(sensor_theta1.ax < Min_Value[0]){
-				Min_Value[0] = sensor_theta1.ax;
-			}
-			// Maior e menor valor no eixo Y
-			if(sensor_theta1.ay > Max_Value[1]){
-				Max_Value[1] = sensor_theta1.ay;
-			}
-			if(sensor_theta1.ay < Min_Value[1]){
-				Min_Value[1] = sensor_theta1.ay;
-			}
-			// Maior e menor valor no eixo Z
-			if(sensor_theta1.az > Max_Value[2]){
-				Max_Value[2] = sensor_theta1.az;
-			}
-			if(sensor_theta1.az < Min_Value[2]){
-				Min_Value[2] = sensor_theta1.az;
-			}
-		DR_delay_k(0.01);
-		i--;
-    }
-	destination[0] = (Max_Value[0]+Min_Value[0])/2;	// Offset eixo x
-	destination[1] = (Max_Value[1]+Min_Value[1])/2; // Offset eixo y
-	destination[2] = (Max_Value[2]+Min_Value[2])/2; // Offset eixo z
-	
-
-}
-void initAK8963(float * destination)
-{
-  // First extract the factory calibration for each magnetometer axis
-  uint8_t rawData[3];  // x/y/z gyro calibration data stored here
-  DR_i2c_write(0,0x0C, 0x0A, 0x00); // Power down magnetometer  
-  DR_delay_k(1);
-  DR_i2c_write(0,0x0C, 0x0A, 0x0F); // Enter Fuse ROM access mode
-  DR_delay_k(1);
-  DR_i2c_readraw(0,0x0C,0X10,3,&rawData[0]); // Read the x-, y-, and z-axis calibration values
-  destination[0] =  (float)(rawData[0] - 128)/256. + 1.;   // Return x-axis sensitivity adjustment values, etc.
-  destination[1] =  (float)(rawData[1] - 128)/256. + 1.;  
-  destination[2] =  (float)(rawData[2] - 128)/256. + 1.; 
-  DR_i2c_write(0,0x0C, 0x0A, 0x00); // Power down magnetometer  
-  DR_delay_k(1);
-  // Configure the magnetometer for continuous read and highest resolution
-  // set Mscale bit 4 to 1 (0) to enable 16 (14) bit resolution in CNTL register,
-  // and enable continuous mode data acquisition Mmode (bits [3:0]), 0010 for 8 Hz and 0110 for 100 Hz sample rates
-  DR_i2c_write(0,0x0C, 0x0A, 1 << 4 | 0x02); // Set magnetometer data resolution and sample ODR
-  DR_delay_k(1);
-}
+uint_fast8_t led_change = 0;
 
 int main(void)
 {	WDT_A_holdTimer();
@@ -213,100 +127,187 @@ int main(void)
 	/* Pin Config */
 	DR_leds_sw_pin();
 	DR_uart_pin();
-	DR_i2c_pin();
-
-	/* Peripherals Config */
-	DR_uart_config(true);
-	DR_i2c_config(0);
-	DR_t32_config_Hz(0,100);
+	DR_i2c_pin();		// I2C0: 1.6(SDA) e 1.7(SCL) e I2C1: 6.4(SDA) e 6.5(SCL) 
+	DR_pwm_pin();		// PWM: 2.4 (PM_0.1), 2.5 (PM_0.2), 2.6 (PM_0.3), 2.7 (PM_0.4)
+	DR_debug_pin();		
 	
-	/* Inicializar Programas*/
+	/* Peripherals Config */
+	DR_uart_config(true);	  // Uart config in 115200 Kbps
+	DR_t32_config_Hz(0,100);  // Interruption config in 100 Hz
+	DR_i2c_config(0);		  // I2C0 Comunication in 400KHz
+	DR_i2c_config(1);		  // I2C1 Comunication in 400KHz
+	DR_pwm_config(&PWM_Rho);	  // PWM_rho in 50hz in 60000 resolution
+	DR_pwm_config(&PWM_Theta1);	  // PWM_theta1 in 50hz in 60000 resolution
+	DR_pwm_config(&PWM_Theta2);	  // PWM_theta2 in 50hz in 60000 resolution
+	DR_pwm_config(&PWM_Theta3);	  // PWM_theta3 in 50hz in 60000 resolution
+
+	/* Program initialization */
 	DR_leds_init();
 	DR_uart_init();
-	DR_i2c_init(0);
-	DR_t32_init(0);
+
+	// Sensor Initialization 
+	int16_t status_init;
+	DR_mpu6050_ligar(1000);		//6.1 MPU6050 Vcc pin
+	status_init = DR_mpu6050_init(&sensor_rho);
+	if (status_init != 1)
+		printf("\n\rIncorrect startup in rho, code(%d) ", status_init);
+	printf("Rho sensor initialized (ok!) ");
 	
-	DR_mpu6050_ligar(10);
-	// status_erro = DR_mpu6050_read(sensor_rho.I2C, sensor_rho.address, 0x75, &data) - 10;
-	// // while (data != 0x68);
+	status_init = DR_mpu6050_init(&sensor_theta1);
+	if (status_init != 1)
+		printf("\n\rIncorrect startup in theta1, code(%d) ", status_init);
+	printf("Theta 1 sensor initialized (ok!) ");
 	
-	// Set accelerometers low pass filter at 5Hz (ACCEL_CONFIG 2)
-	DR_i2c_write(sensor_rho.I2C, sensor_rho.address, 29, 0x06);
-	// Set gyroscope low pass filter at 5Hz (CONFIG)
-	DR_i2c_write(sensor_rho.I2C, sensor_rho.address, 26, 0x06);
+	status_init = DR_mpu6050_init(&sensor_theta2);
+	if (status_init != 1)
+		printf("\n\rIncorrect startup in theta2, code(%d) ", status_init);
+	printf("Theta 2 sensor initialized (ok!) ");
 	
-	// Configure gyroscope range(GYRO_FS_SEL)
-	DR_i2c_write(sensor_rho.I2C, sensor_rho.address,27, 0x10);
-	// Configure accelerometers range (ACCEL_FS_SEL)
-	DR_i2c_write(sensor_rho.I2C, sensor_rho.address,28, 0x08);
-	// Set by pass mode for the magnetometers
-	DR_i2c_write(sensor_rho.I2C, sensor_rho.address,0x37, 0x02);
-	// Request continuous magnetometer measurements in 16 bits !!!
-	DR_i2c_write(sensor_rho.I2C, 0x0C,0x0A, 0x16);
-	printf("\n\rSensores Inicializados");
-	// Auto Calibração do Magnetômetro
-	Calibrar_Magnetometro(Magnetometer_offset);
-    printf("\n\rSensores Calibrados");
-    printf("\n\rOffsetX : %.4f",Magnetometer_offset[0]);
-    printf("\n\rOffsetY : %.4f",Magnetometer_offset[1]);
-    printf("\n\rOffsetZ : %.4f",Magnetometer_offset[2]);
+	status_init = DR_mpu6050_init(&sensor_theta3);
+	if (status_init != 1)
+		printf("\n\rIncorrect startup in theta3, code(%d) ", status_init);
+	printf("Theta 3 sensor initialized (ok!) ");
+
+	DR_leds_alterar(1);
+
+	// PWM Initialization
+	DR_pwm_init(&PWM_Rho, 6000); // initialize in 10%
+	DR_pwm_init(&PWM_Theta1, 6000); // initialize in 10%
+	DR_pwm_init(&PWM_Theta2, 6000); // initialize in 10%
+	DR_pwm_init(&PWM_Theta3, 6000); // initialize in 10%
 	
 	/* Interrupt Config */
-	DR_uart_interrupt_receive();
+	DR_uart_interrupt_receive();	// interrupt from input console
+	DR_t32_interrupt_init(0,DR_interrupt_100Hz);
 	DR_interrupt_on();
-	 DR_t32_interrupt_init(0,interrupt_angles);
-	
+
 	while (1)
 	{
+		DR_leds_alterar(led_change);
+		DR_delay_s(1);
 
-		if (status_flag_uart)
-		{
-			contador = UART_receiveData(EUSCI_A0_BASE) - 48;
-			printf("\n\n\r--Ledupdate(%d)",contador);
-			if (contador == 1)
-			{	/*Leitura do endereço*/
-				DR_i2c_read(0,0x68,0x75,RXData);
-				printf("\n\rMPU9250 i AM : 0x%x should be : 0x71",RXData[0]);
-				
-				DR_i2c_read(0,0x0C,0x00,RXData);
-				printf("\n\rMPU9250 i AM : 0x%x should be: 0X48",RXData[0]);
-			}
-			if (contador == 2)
-			{	/*Leitura acc e gyroscope*/
-				int status_erro;
-				status_erro = DR_i2c_readraw(0,0x68,0x3B,14,leitura);
-				printf("\n\rRetorno do Status erro: %d", status_erro);
-				int j;
-				for (j = 0; j < 14; j++)
-				printf("\n\rleitura[%d]:%x", j, leitura[j]);
-				}
-			if (contador == 3)
-			{	/* Leitura Magnetometro calibração*/
-				float magCalibration[3];
-				initAK8963(magCalibration);
-				
-				printf("\n\rMag:X-Axis sensitivity adjustment value %.5f",magCalibration[0]);
-				printf("\n\rMag:Y-Axis sensitivity adjustment value %.5f",magCalibration[1]);
-				printf("\n\rMag:Z-Axis sensitivity adjustment value %.5f",magCalibration[2]);
-
-			}		
-			if (contador == 4)
-			{	/* Leitura Magnetometro data*/
-			int status_erro;
-				status_erro = DR_i2c_readraw(0,0x0C,0x03,7,leitura);
-				printf("\n\rRetorno do Status erro: %d", status_erro);
-				int j;
-				for (j = 0; j < 14; j++)
-				printf("\n\rleitura[%d]:%x", j, leitura[j]);
-				}
-				
-			}
-			
+		if(status_flag_uart == 1){
+			led_change = UART_receiveData(EUSCI_A0_BASE) - 48;
+			printf("\n\n\r--Ledupdate(%d)",led_change);
 			status_flag_uart = 0;
 		}
 
+	}
+
+}
+/*Interrupt for read sensors, execute control law and drive motors*/
+void Interruption_Program(){
+	References_Circle(&Circle); // 3.29ms
+//	References_Saw(&Saw);
+	Inverse_Kinematic(&Circle); // 5.92 - 6.20ms
+	Varredura_Sensores(); //  2.96ms 
+	Calculate_PD_all_links(&Circle);
+//	Calculate_OL_all_links(&Circle);// 5.92 - 6.20ms
+	Varredura_Motores(); //5.92 - 6.20ms
+
 }
 
+/*Update motor Values with new u[k]*/
+void Varredura_Motores() {
+// Atualizar os Motores com os valores de u[k] 
+	setPosition_ServoMotor(&PWM_Rho,rho.u);
+	setPosition_ServoMotor(&PWM_Theta1,theta1.u);
+	setPosition_ServoMotor(&PWM_Theta2,theta2.u);
+	setPosition_ServoMotor(&PWM_Theta3,theta3.u);
+}
+/*Calculate Open Loop control Law for all links*/
+void Calculate_OL_all_links(Reference_data *Trajectory){
+	Open_Loop_Control_Law(&rho,Trajectory->rho);
+	Open_Loop_Control_Law(&theta1,Trajectory->theta1);
+	Open_Loop_Control_Law(&theta2,Trajectory->theta2);
+	Open_Loop_Control_Law(&theta3,Trajectory->theta3);
+}
+/*Calculate PD control Law for all links*/
+void Calculate_PD_all_links(Reference_data *Trajectory){
+	Pd_Control_Law(&rho,Trajectory->rho);
+	Pd_Control_Law(&theta1,Trajectory->theta1);
+	Pd_Control_Law(&theta2,Trajectory->theta2);
+	Pd_Control_Law(&theta3,Trajectory->theta3);
+}
+/* All sensor update for Control Law */
+void Varredura_Sensores(){
+    int j;
+	for (j = 0; j < 4; j++) {
+		Angles_update(j);
+	}
+}
+/* Update Actual Value of angle link and update *links.Th*/
+void Angles_update(int sensor) {
+	if (sensor == 0) { 
+		/* Angle Rho (link Base)*/
+		DR_mpu6050_atualizar(&sensor_rho); // Update Gyro and accelerometers values
+		sensor_rho.ang_gyro = -sensor_rho.gz * 1.3323e-04f; // Calculate gyro for kalman Filter (put in float!)
+		rho.estimativa_motor = (getPosition_ServoMotor(&PWM_Rho));	// Update from internal model estimative.
+		
+		// Calculate the angle using a Kalman filter
+		sensor_rho.ang_updated = getAngle(&kalman_0, rho.estimativa_motor, sensor_rho.ang_gyro, Ts);
+		// Calculate the angle relative the others links
+		rho.Th = sensor_theta1.ang_updated - pi_2;
+
+	}
+	if (sensor == 1) { 
+		/* Angle Theta 1 (Link 1) */
+		DR_mpu6050_atualizar(&sensor_theta1); // Update Gyro and accelerometers values
+		sensor_theta1.ang_gyro = sensor_theta1.gy * 1.3323e-04f; // Calculate gyro for kalman Filter (put in float!)
+		
+		float accX = sensor_theta1.ax * g * ACC_RESOLUTION;	// Calculate ax from accelerometer by acc resolution
+		float accZ = sensor_theta1.az * g * ACC_RESOLUTION; // Calculate az from accelerometer by acc resolution
+		sensor_theta1.ang_pitch = atan2f(-accX, accZ);
+
+		// Calculate the angle using a Kalman filter
+		sensor_theta1.ang_updated = -getAngle(&kalman_1, sensor_theta1.ang_pitch, sensor_theta1.ang_gyro, Ts);
+		// Calculate the angle relative the others links
+		theta1.Th = sensor_theta1.ang_updated;
+	}
+	if (sensor == 2) {
+	/* Angle Theta 2 (Link 2) */
+		DR_mpu6050_atualizar(&sensor_theta2); // Update Gyro and accelerometers values
+		sensor_theta2.ang_gyro = sensor_theta2.gz * 1.3323e-04f; // Calculate gyro for kalman Filter (put in float!)
+		
+		float accX = sensor_theta2.ax * g * ACC_RESOLUTION;	// Calculate ax from accelerometer by acc resolution
+		float accY = sensor_theta2.ay * g * ACC_RESOLUTION; // Calculate az from accelerometer by acc resolution
+		sensor_theta2.ang_pitch = atan2f(accX, accY);
+
+		// Calculate the angle using a Kalman filter
+		sensor_theta2.ang_updated = getAngle(&kalman_2, sensor_theta2.ang_pitch, sensor_theta2.ang_gyro, Ts);
+		// Calculate the angle relative the others links
+		theta2.Th = (sensor_theta2.ang_updated + pi_2) - theta1.Th;
+	}
+	if (sensor == 3) {
+	/* Angle Theta 3 (Link 3) */
+		DR_mpu6050_atualizar(&sensor_theta3); // Update Gyro and accelerometers values
+		sensor_theta3.ang_gyro = sensor_theta3.gz * 1.3323e-04f; // Calculate gyro for kalman Filter (put in float!)
+		
+		float accX = sensor_theta3.ax * g * ACC_RESOLUTION;	// Calculate ax from accelerometer by acc resolution
+		float accY = sensor_theta3.ay * g * ACC_RESOLUTION; // Calculate az from accelerometer by acc resolution
+		sensor_theta3.ang_pitch = atan2f(accX, accY);
+
+		// Calculate the angle using a Kalman filter
+		sensor_theta3.ang_updated = getAngle(&kalman_3, sensor_theta3.ang_pitch, sensor_theta3.ang_gyro, Ts);
+		// Calculate the angle relative the others links
+		theta3.Th = (sensor_theta2.ang_updated + pi_2) - theta1.Th- theta2.Th;
+	}
+}
+
+void DR_debug_pin(){
+	/* Pino qualquer como saida para auxiliar o Debug */
+	// GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0);
+}
+/* Interrupt routine in 100Hz for control law*/	
+void DR_interrupt_100Hz(){
+	 // Desativar a flag
+    Timer32_clearInterruptFlag(TIMER32_0_BASE);
+    // Calculate time interruption
+	DR_tick_stop(false);
+	Interruption_Program();
+    DR_tick_start();
+
+}
 void EUSCIA0_IRQHandler(void)
 {
 	UART_clearInterruptFlag(EUSCI_A0_BASE, EUSCI_A_UART_RECEIVE_INTERRUPT_FLAG);

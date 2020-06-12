@@ -364,7 +364,7 @@ double DR_t32_get_freq(uint_fast8_t n_Timer)
 	return period;
 }
 void DR_i2c_pin()
-{	/* So para o I2C0 1.6(SDA) e 1.7(SCL) */
+{	/* I2C0 1.6(SDA) e 1.7(SCL) e I2C1 6.4(SDA) e 6.5(SCL) */
 	/* Select Port 1 for I2C - Set Pin 6, 7 to input Primary Module Function,
 	 *   (UCB0SIMO/UCB0SDA, UCB0SOMI/UCB0SCL). and setting P5.5 for input mode
 	 *   with pull-up enabled
@@ -373,6 +373,11 @@ void DR_i2c_pin()
 	GPIO_PORT_P1,
 												GPIO_PIN6 + GPIO_PIN7,
 												GPIO_PRIMARY_MODULE_FUNCTION);
+	GPIO_setAsPeripheralModuleFunctionInputPin(
+	GPIO_PORT_P6,
+												GPIO_PIN4 + GPIO_PIN5,
+												GPIO_PRIMARY_MODULE_FUNCTION);
+
 }
 void DR_i2c_config(uint_fast8_t n_I2C){
 	/* Selecionar I2C */
@@ -596,18 +601,19 @@ void DR_pmap_pin()
 	PMAP->KEYID = 0;
 }
 void DR_pwm_pin()
-{	/*Funcionou okay*/
-	/* PWM : Pin Config */
+{	/* PWM : Pin Config */
 	GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN4,
 	GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA0.1
 	GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN5,
 	GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA0.2
-	// GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN6,
-	// GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA0.3
-	// GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN4,
-	// GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA0.4
-	GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P5, GPIO_PIN6,
-	GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA2.1
+	GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN6,
+	GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA0.3
+	GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN7,
+	GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA0.4
+	// GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P5, GPIO_PIN6,
+	// GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA2.1
+	// GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P5, GPIO_PIN7,
+	// GPIO_PRIMARY_MODULE_FUNCTION); // PM_TA2.2
 }
 void DR_pwm_config(const dr_pwm_parameters *pwm_config)
 {	/*Configurar modo de operação do timer especificado, cada timer tem 4 canais de pwm*/
