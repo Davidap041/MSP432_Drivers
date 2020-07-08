@@ -286,6 +286,7 @@ extern "C" {
 
 typedef struct
 {
+	uint_fast8_t identification;
 	uint32_t timer;
 	bool fast_mode;
 	uint16_t timer_Prescaler;

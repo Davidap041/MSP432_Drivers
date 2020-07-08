@@ -27,7 +27,8 @@ Kalman_data kalman_3 = { .Q_angle = 0.0001f, .Q_bias = 0.01f,
 							.R_measure = 0.03f, .angle = 0.0f, .bias = 0.0f };
 
 // Vari�veis relacionadas aos �ngulos dos elos e controlador PD
-Angle theta1 = { .identification = 1.0f, .kp_pd = 2.7f, .kv_pd = 0.3f, .m =
+
+Ctrl_Law_angle_data theta1 = { .identification = 1.0f, .kp_pd = 2.7f, .kv_pd = 0.3f, .m =
 							0.2390f,
 					.b = 0.98597f, .k = 0.001232f, .upper_limit = 1.972f,
 					.lower_limit = 0.562f, .means = 1.3065f, .Th_ref = 0.0f };
@@ -67,16 +68,17 @@ int DR_angles_update(uint16_t n_sensor)
 	if (n_sensor == 1)
 	{
 		/* Atualizar leitura do �ngulo theta 1*/
-		float accX = sensor_theta1.ax * g * ACC_RESOLUTION;
-		float accZ = sensor_theta1.az * g * ACC_RESOLUTION;
-		float gyroY = sensor_theta1.gy * 1.3323e-04f;
+		float accX = magValue[0]; // Magnetometer X-axis // Testar multiplicar por 0.1
+		float accY = magValue[1]; // Magnetometer Y-axis // Testar multiplicar por 0.1
 		
-		sensor_theta1.ang_gyro = gyroY;
+		float gyroZ = sensor_rho.gz * 1.3323e-04f; // Gyroscope Z euler angle
 		
-		float pitch = atan2f(-accX, accZ);
-		sensor_theta1.ang_pitch = pitch;
-
-		float Kal_Angle = -getAngle(&kalman_1, pitch, gyroY, Ts);
+		sensor_theta1.ang_gyro = gyroZ; // store Z euler angle gyroscope
+		
+		float pitch = atan2f(-accY, accX); // calculate angle Z from Magnetometer
+		sensor_theta1.ang_pitch = pitch; // Store 
+		// obs test the movement in a 180 degree in relation the angle of calibration
+		float Kal_Angle = getAngle(&kalman_1, pitch, gyroZ, Ts);
 		angulos_atualizados[1] = Kal_Angle;
 
 		theta1.Th = angulos_atualizados[1];
@@ -125,7 +127,8 @@ void interrupt_angles(){
 	 magValue[0] = (float)sensor_theta1.ax - Magnetometer_offset[0];
 	 magValue[1] = (float)sensor_theta1.ay - Magnetometer_offset[1];
 	 magValue[2] = (float)sensor_theta1.az - Magnetometer_offset[2];
-
+	// Calculate Kalman Filter Angle Rho
+	DR_angles_update(1);
 
 	 if(status_flag_print == 10){
 	 status_flag_print = 0;
@@ -135,7 +138,7 @@ void interrupt_angles(){
 	 }
 }
 void Calibrar_Magnetometro(float *destination){
-    int i = 100;
+    int i = 500;
     int Max_Value[3];
     int Min_Value[3];
 
@@ -226,7 +229,7 @@ int main(void)
 	DR_i2c_init(0);
 	DR_t32_init(0);
 	
-	DR_mpu6050_ligar(10);
+	DR_mpu6050_ligar(10); // I'm not using this now!
 	// status_erro = DR_mpu6050_read(sensor_rho.I2C, sensor_rho.address, 0x75, &data) - 10;
 	// // while (data != 0x68);
 	
