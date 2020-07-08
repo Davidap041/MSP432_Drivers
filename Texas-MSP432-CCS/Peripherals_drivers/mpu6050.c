@@ -209,3 +209,114 @@ int DR_mpu6050_readraw(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 	return 0; /* no error */
 }
 
+
+void DR_magnetometer_calibrate(dr_mpu_data_t *sensor){
+    int i = 500;
+    int Max_Value[3];
+    int Min_Value[3];
+	uint8_t leitura[14];
+
+    DR_i2c_readraw(0,0x0C,0x03,7,leitura);
+    sensor->ax =      (leitura[1] << 8) | (leitura[0]); // HXL HXH
+    sensor->ay =      (leitura[3] << 8) | (leitura[2]);
+    sensor->az =      (leitura[4] << 8) | (leitura[4]);
+
+    Max_Value[0] = sensor->ax;
+	Min_Value[0] = sensor->ax;
+	Max_Value[1] = sensor->ay;
+	Min_Value[1] = sensor->ay;
+	Max_Value[2] = sensor->az;
+	Min_Value[2] = sensor->az;
+
+    while(i>0){
+		DR_i2c_readraw(0,0x0C,0x03,7,leitura);
+		sensor->ax =      (leitura[1] << 8) | (leitura[0]); // HXL HXH
+		sensor->ay =      (leitura[3] << 8) | (leitura[2]);
+		sensor->az =      (leitura[4] << 8) | (leitura[4]);
+			// Higher and lower X-axis Value
+			if(sensor->ax > Max_Value[0]){
+				Max_Value[0] = sensor->ax;
+			}
+			if(sensor->ax < Min_Value[0]){
+				Min_Value[0] = sensor->ax;
+			}
+			// Higher and lower Y-axis Value
+			if(sensor->ay > Max_Value[1]){
+				Max_Value[1] = sensor->ay;
+			}
+			if(sensor->ay < Min_Value[1]){
+				Min_Value[1] = sensor->ay;
+			}
+			// Higher and lower Z-axis Value
+			if(sensor->az > Max_Value[2]){
+				Max_Value[2] = sensor->az;
+			}
+			if(sensor->az < Min_Value[2]){
+				Min_Value[2] = sensor->az;
+			}
+		DR_delay_k(0.01);
+		i--;
+    }
+	sensor->mag_offset_x = (Max_Value[0]+Min_Value[0])/2;	// Offset  x-axis
+	sensor->mag_offset_y = (Max_Value[1]+Min_Value[1])/2; // Offset  y-axis
+	sensor->mag_offset_z = (Max_Value[2]+Min_Value[2])/2; // Offset  z-axis
+}
+
+void initAK8963(float * destination)
+{
+  // First extract the factory calibration for each magnetometer axis
+  uint8_t rawData[3];  // x/y/z gyro calibration data stored here
+  DR_i2c_write(0,0x0C, 0x0A, 0x00); // Power down magnetometer  
+  DR_delay_k(1);
+  DR_i2c_write(0,0x0C, 0x0A, 0x0F); // Enter Fuse ROM access mode
+  DR_delay_k(1);
+  DR_i2c_readraw(0,0x0C,0X10,3,&rawData[0]); // Read the x-, y-, and z-axis calibration values
+  destination[0] =  (float)(rawData[0] - 128)/256. + 1.;   // Return x-axis sensitivity adjustment values, etc.
+  destination[1] =  (float)(rawData[1] - 128)/256. + 1.;  
+  destination[2] =  (float)(rawData[2] - 128)/256. + 1.; 
+  DR_i2c_write(0,0x0C, 0x0A, 0x00); // Power down magnetometer  
+  DR_delay_k(1);
+  // Configure the magnetometer for continuous read and highest resolution
+  // set Mscale bit 4 to 1 (0) to enable 16 (14) bit resolution in CNTL register,
+  // and enable continuous mode data acquisition Mmode (bits [3:0]), 0010 for 8 Hz and 0110 for 100 Hz sample rates
+  DR_i2c_write(0,0x0C, 0x0A, 1 << 4 | 0x02); // Set magnetometer data resolution and sample ODR
+  DR_delay_k(1);
+}
+
+int DR_mpu9250_init(dr_mpu_data_t *sensor){
+	// Set accelerometers low pass filter at 5Hz (ACCEL_CONFIG 2)
+	DR_i2c_write(sensor->I2C, sensor->address, 29, 0x06);
+	// Set gyroscope low pass filter at 5Hz (CONFIG)
+	DR_i2c_write(sensor->I2C, sensor->address, 26, 0x06);
+	
+	// Configure gyroscope range(GYRO_FS_SEL)
+	DR_i2c_write(sensor->I2C, sensor->address,27, 0x10);
+	// Configure accelerometers range (ACCEL_FS_SEL)
+	DR_i2c_write(sensor->I2C, sensor->address,28, 0x08);
+	// Set by pass mode for the magnetometers
+	DR_i2c_write(sensor->I2C, sensor->address,0x37, 0x02);
+	// Request continuous magnetometer measurements in 16 bits !!!
+	DR_i2c_write(sensor->I2C, 0x0C,0x0A, 0x16);
+	return 1;
+}
+int DR_mpu9250_atualizar(dr_mpu_data_t *sensor){
+	// Leitura do Acelerêometro e Giroscopio
+	uint8_t leitura[14];
+	DR_i2c_readraw(0,0x68,0x3B,14,leitura);
+	sensor->ax =		(leitura[0] << 8) | (leitura[1]); // AccXH XL
+	sensor->ay = 	(leitura[2] << 8) | (leitura[3]); 
+	sensor->az = 	(leitura[4] << 8) | (leitura[5]);
+	sensor->temp =  	(leitura[6] << 8) | (leitura[7]);
+	sensor->gx = 	(leitura[8] << 8) | (leitura[9]);
+	sensor->gy =		(leitura[10] << 8) | (leitura[11]);
+	sensor->gz = 	(leitura[12] << 8) | (leitura[13]);
+	// Leitura do Magnetometro
+	DR_i2c_readraw(0,0x0C,0x03,7,leitura);
+	sensor->mx =		(leitura[1] << 8) | (leitura[0]); // HXL HXH
+	sensor->my = 		(leitura[3] << 8) | (leitura[2]); 
+	sensor->mz = 		(leitura[4] << 8) | (leitura[4]);
+	//leitura[7];	// Dado pronto
+	return 1;
+}
+
+
