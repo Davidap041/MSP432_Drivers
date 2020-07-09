@@ -211,7 +211,7 @@ int DR_mpu6050_readraw(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 
 
 void DR_magnetometer_calibrate(dr_mpu_data_t *sensor){
-    int i = 500;
+    int i = 1000;
     int Max_Value[3];
     int Min_Value[3];
 	uint8_t leitura[14];
@@ -254,7 +254,7 @@ void DR_magnetometer_calibrate(dr_mpu_data_t *sensor){
 			if(sensor->az < Min_Value[2]){
 				Min_Value[2] = sensor->az;
 			}
-		DR_delay_k(0.01);
+		DR_delay_k(1);
 		i--;
     }
 	sensor->mag_offset_x = (Max_Value[0]+Min_Value[0])/2;	// Offset  x-axis

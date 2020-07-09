@@ -15,7 +15,7 @@ uint8_t RXData[2];
 uint8_t contador = 1;
 // Vari�veis relacionadas ao filtro de kalman
 // Instancia dos Filtros
-Kalman_data kalman_0 = { .Q_angle = 0.1f, .Q_bias = 0.01f, .R_measure = 0.03f,
+Kalman_data kalman_0 = { .Q_angle = 0.1f, .Q_bias = 0.01f, .R_measure = 0.1f,
 							.angle = 0, .bias = 0 };
 Kalman_data kalman_1 = { .Q_angle = 0.001f, .Q_bias = 0.0001f, .R_measure =
 									0.03f,
@@ -80,7 +80,8 @@ int DR_angles_update(uint16_t n_sensor)
 		
 		sensor_rho.ang_gyro = gyroZ; // store Z euler angle gyroscope
 		
-		float pitch = atan2f(-accY, accX); // calculate angle Z from Magnetometer
+		float pitch = atan2f(accY, accX); // calculate angle Z from Magnetometer
+		// -y/x n funcionou
 		sensor_rho.ang_pitch = pitch; // Store
 		// obs test the movement in a 180 degree in relation the angle of calibration
 		float Kal_Angle = getAngle(&kalman_0, pitch, gyroZ, Ts);
