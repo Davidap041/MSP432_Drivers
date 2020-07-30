@@ -29,21 +29,18 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * --/COPYRIGHT--*/
-/* Standard Defines */
+/* External Defines */
 #include <stdint.h>
-
-/* TI Defines */
 #include <ti/sysbios/BIOS.h>
 #include <ti/display/Display.h>
 #include <ti/drivers/GPIO.h>
 #include <ti/drivers/Power.h>
 #include <ti/drivers/Timer.h>
 #include <ti/drivers/UART.h>
-#include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 
-/* Local Defines */
+/* Standard Defines */
 #include "Board.h"
-#include "project_zero.h"
+#include "simple_application_processor.h"
 
 /* Output display handle that will be used to print out all debug/log
  * statements
@@ -55,29 +52,22 @@ int main(void)
     /* Call board initialization functions */
     Power_init();
     GPIO_init();
-    PWM_init();
     UART_init();
     Timer_init();
 
     /* Open the display for output */
-    displayOut = Display_open(Display_Type_UART | Display_Type_HOST, NULL);
+    displayOut = Display_open(Display_Type_HOST | Display_Type_UART, NULL);
     if (displayOut == NULL)
     {
         /* Failed to open display driver */
         while (1);
     }
 
-    /* ProjectZero Task */
-    ProjectZero_createTask();
+    /* Create main application processor task */
+    AP_createTask();
 
-    /* Update SNP Task */
-    updateSNP_createTask();
-
-    /* Button Handler Task */
-    buttonTask_createTask();
-
-    /* Enable interrupts and start SYS/BIOS */
+    /* enable interrupts and start SYS/BIOS */
     BIOS_start();
     
-    return 0;   
+    return 0;
 }

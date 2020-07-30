@@ -12,7 +12,7 @@
 	<createSlaveProjects value=""/>
 	<ignoreDefaultDeviceSettings value="true"/>
 	<ignoreDefaultCCSSettings value="true"/>
-	<templateProperties value="id=project_zero_MSP_EXP432P401R_tirtos_ccs.projectspec.project_zero_MSP_EXP432P401R_tirtos_ccs,buildProfile=release,isHybrid=true"/>
-	<origin value="C:\ti\simplelink_sdk_ble_plugin_3_20_00_24\examples\rtos\MSP_EXP432P401R\bluetooth\project_zero\tirtos\ccs\project_zero_MSP_EXP432P401R_tirtos_ccs.projectspec"/>
+	<templateProperties value="id=simple_application_processor_MSP_EXP432P401R_tirtos_ccs.projectspec.simple_application_processor_MSP_EXP432P401R_tirtos_ccs,buildProfile=release,isHybrid=true"/>
+	<origin value="C:\ti\simplelink_sdk_ble_plugin_3_20_00_24\examples\rtos\MSP_EXP432P401R\bluetooth\simple_application_processor\tirtos\ccs\simple_application_processor_MSP_EXP432P401R_tirtos_ccs.projectspec"/>
 	<filesToOpen value=""/>
 </projectOptions>
