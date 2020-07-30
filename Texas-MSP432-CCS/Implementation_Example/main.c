@@ -1,282 +1,326 @@
-/* DriverLib Includes */
-
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <math.h>
+/* DriverLib Includes */
 #include "Drivers_Control.h"
 #include "mpu6050.h"
 #include "Kalman.h"
 #include "Control_Law.h"
 #include "function.h"
 
-uint8_t RXData[2];
-uint8_t contador = 1;
-// Vari�veis relacionadas ao filtro de kalman
-// Instancia dos Filtros
-Kalman_data kalman_0 = { .Q_angle = 0.1f, .Q_bias = 0.01f, .R_measure = 0.03f,
-							.angle = 0, .bias = 0 };
-Kalman_data kalman_1 = { .Q_angle = 0.001f, .Q_bias = 0.0001f, .R_measure =
-									0.03f,
-							.angle = 0.0f, .bias = 0.0f };
-Kalman_data kalman_2 = { .Q_angle = 0.001f, .Q_bias = 0.0001f, .R_measure =
-									0.03f,
-							.angle = 0.0f, .bias = 0.0f };
-Kalman_data kalman_3 = { .Q_angle = 0.0001f, .Q_bias = 0.01f,
-							.R_measure = 0.03f, .angle = 0.0f, .bias = 0.0f };
-
-// Vari�veis relacionadas aos �ngulos dos elos e controlador PD
-Angle theta1 = { .identification = 1.0f, .kp_pd = 2.7f, .kv_pd = 0.3f, .m =
-							0.2390f,
-					.b = 0.98597f, .k = 0.001232f, .upper_limit = 1.972f,
-					.lower_limit = 0.562f, .means = 1.3065f, .Th_ref = 0.0f };
-
-// Defini��o do endere�amento dos 4 sensores
+/* Instancia dos Objetos */
+// PWM Configuration for Channel
+// Drive PWM for link Rho in 50Hz
+dr_pwm_parameters PWM_Rho = {
+	.identification = 0,
+	.timer = TIMER_A0_BASE,
+	.fast_mode = true,
+	.timer_Prescaler = 4,
+	.true_Sawtooth_not_triangular = true,
+	.period_count = 60000, //60360 = 50 Hz(fechado, osciloscópio)
+	.pwm_channel = 1,
+	.outputmode = TIMER_A_OUTPUTMODE_RESET_SET
+};
+// Drive PWM for link Theta1 in 50Hz
+dr_pwm_parameters PWM_Theta1 = {
+	.identification = 1,
+	.timer = TIMER_A0_BASE,
+	.fast_mode = true,
+	.timer_Prescaler = 4,
+	.true_Sawtooth_not_triangular = true,
+	.period_count = 60000,	// 60000 = 50,33Hz (osciloscópio)
+	.pwm_channel = 2,
+	.outputmode = TIMER_A_OUTPUTMODE_RESET_SET
+};
+// Drive PWM for link Theta2 in 50Hz
+dr_pwm_parameters PWM_Theta2 = {
+	.identification = 2,
+	.timer = TIMER_A0_BASE,
+	.fast_mode = true,
+	.timer_Prescaler = 4,
+	.true_Sawtooth_not_triangular = true,
+	.period_count = 60000,
+	.pwm_channel = 3,
+	.outputmode = TIMER_A_OUTPUTMODE_RESET_SET
+};
+// Drive PWM for link Theta3 in 50Hz
+dr_pwm_parameters PWM_Theta3 = {
+	.identification = 3,
+	.timer = TIMER_A0_BASE,
+	.fast_mode = true,
+	.timer_Prescaler = 4,
+	.true_Sawtooth_not_triangular = true,
+	.period_count = 60000,
+	.pwm_channel = 4,
+	.outputmode = TIMER_A_OUTPUTMODE_RESET_SET
+};
+// Sensor Configuration and Address
+// Sensor (accelerometer + Gyroscope) for measure angle Rho
 dr_mpu_data_t sensor_rho = { .identification = 0, .address = 0x68, .I2C = 0, };
+// Sensor (accelerometer + Gyroscope) for measure angle Theta 1
 dr_mpu_data_t sensor_theta1 = { .identification = 1, .address = 0x69, .I2C = 0, };
-dr_mpu_data_t sensor_theta2 = { .identification = 2, .address = 0x68, .I2C = 2, };
-dr_mpu_data_t sensor_theta3 = { .identification = 3, .address = 0x69, .I2C = 2, };
-// Vari�veis para instancias as refer�ncias
+// Sensor (accelerometer + Gyroscope) for measure angle Theta 2
+dr_mpu_data_t sensor_theta2 = { .identification = 2, .address = 0x68, .I2C = 1, };
+// Sensor (accelerometer + Gyroscope) for measure angle Theta 3
+dr_mpu_data_t sensor_theta3 = { .identification = 3, .address = 0x69, .I2C = 1, };
+
+// Filters Instance 
+// Kalman Values for Covariance, erro Measure for measure Angle Rho
+Kalman_data kalman_0 = { .Q_angle = 0.1f, .Q_bias = 0.01f,     .R_measure = 0.03f,	.angle = 0, .bias = 0 };
+// Kalman Values for Covariance, erro Measure for measure Angle Theta 1
+Kalman_data kalman_1 = { .Q_angle = 0.001f, .Q_bias = 0.0001f, .R_measure =0.03f, .angle = 0.0f, .bias = 0.0f };
+// Kalman Values for Covariance, erro Measure for measure Angle Theta 2
+Kalman_data kalman_2 = { .Q_angle = 0.001f, .Q_bias = 0.0001f, .R_measure = 0.03f,.angle = 0.0f, .bias = 0.0f };
+// Kalman Values for Covariance, erro Measure for measure Angle Theta 3
+Kalman_data kalman_3 = { .Q_angle = 0.0001f, .Q_bias = 0.01f,  .R_measure = 0.03f, .angle = 0.0f, .bias = 0.0f };
+ 
+/*PD links parameters*/
+// PD parameters and signals to control the link rho
+Ctrl_Law_angle_data rho = { .identification = 0, .kp_pd = 2.7, .kv_pd = 0.3, .m = 0.2940, .b =
+		1.02549, .k = 0.00044956, .upper_limit = rho_angle_max, .lower_limit =
+rho_angle_min, .means = 0, .Th_ref = 0 };
+// PD parameters and signals to control the link Theta 1
+Ctrl_Law_angle_data theta1 = { .identification = 1, .kp_pd = 2.7, .kv_pd = 0.3, .m = 0.2390,
+		.b = 0.98597, .k = 0.001232, .upper_limit = theta1_angle_max,
+		.lower_limit = theta1_angle_min, .means = 1.3065, .Th_ref = 0 };
+// PD parameters and signals to control the link Theta 2
+Ctrl_Law_angle_data theta2 = { .identification = 2, .kp_pd = 2.7, .kv_pd = 0.3, .m = 0.1440,
+		.b = 0.951269, .k = 0.009040, .upper_limit = theta2_angle_min,
+		.lower_limit = theta2_angle_max, .means = 1.9899, .Th_ref = 0 };
+// PD parameters and signals to control the link Theta 3
+Ctrl_Law_angle_data theta3 =
+		{ .identification = 3, .kp_pd = 5, .kv_pd = 0.6, .m = 0.072, .b =
+				1.209418, .k = 0.006143, .upper_limit =
+		theta3_angle_max, .lower_limit = theta3_angle_min, .means = 1.3718,
+				.Th_ref = 0 };
+
+// References Instance
 Reference_data Circle = { .ref_time = pi_2 }, Triangle, Straight, Saw;
 
-float angulos_atualizados[4];
+/* Funtions Prototype */
+/* Configure pins interruptions */
+void DR_debug_pin();
+/* Interrupt routine in 100Hz for control law*/	
+//void DR_interrupt_100Hz();
+/*Interrupt for read sensors, execute control law and drive motors*/
+void Interruption_Program(); 
+/*Update motor Values with new u[k]*/
+void Varredura_Motores(); 
+/*Calculate Open Loop control Law for all links*/
+void Calculate_OL_all_links(Reference_data *Trajectory);
+/*Calculate PD control Law for all links*/
+void Calculate_PD_all_links(Reference_data *Trajectory);
+/* All sensor update for Control Law */
+void Varredura_Sensores();
+/* Update Actual Value of angle link and update *links.Th*/
+void Angles_update(int sensor);
 
-uint_fast8_t status_flag_uart = 0;
-uint_fast8_t status_flag_angle_update = 0;
-uint_fast8_t status_flag_print = 0;
-uint_fast16_t status_flag_diagnostic = 0;
-double tempo_processamento = 0;
-/* For Debug graph*/
-
-void Pd_Control_Law(Reference_data *reference)
-{
-//	Atualizar Valores de Referencia
-//	rho.Th_ref = reference->rho;
-	theta1.Th_ref = reference->theta1;
-//	theta2.Th_ref = reference->theta2;
-//	theta3.Th_ref = reference->theta3;
-
-// Calcula Refer�ncia com o atraso
-//	rho.dTh_ref = (rho.Th_ref - rho.Th_ref_anterior);
-	theta1.dTh_ref = (theta1.Th_ref - theta1.Th_ref_anterior);
-//	theta2.dTh_ref = (theta2.Th_ref - theta2.Th_ref_anterior);
-//	theta3.dTh_ref = (theta3.Th_ref - theta3.Th_ref_anterior);
-
-// Guarda os Valores de Refer�ncia
-//	rho.Th_ref_anterior = rho.Th_ref;
-	theta1.Th_ref_anterior = theta1.Th_ref;
-//	theta2.Th_ref_anterior = theta2.Th_ref;
-//	theta3.Th_ref_anterior = theta3.Th_ref;
-// Calculo dos Diferenciais Th
-//	rho.dTh = (rho.Th - rho.Th_anterior);
-	theta1.dTh = (theta1.Th - theta1.Th_anterior);
-//	theta2.dTh = (theta2.Th - theta2.Th_anterior);
-//	theta3.dTh = (theta3.Th - theta3.Th_anterior);
-
-//	Guarada os valores dos �ngulos
-//	rho.Th_anterior = rho.Th;
-	theta1.Th_anterior = theta1.Th;
-//	theta2.Th_anterior = theta2.Th;
-//	theta3.Th_anterior = theta3.Th;
-
-// C�lculo do Sinal de Controle u[k]
-//	Control_Signal (&rho);
-	Control_Signal(&theta1);
-//	Control_Signal (&theta2);
-//	Control_Signal (&theta3);
-
-}
-
-int DR_angles_update(uint16_t n_sensor)
-{
-	if (n_sensor == 0)
-	{
-		int status_atualizar = DR_mpu6050_atualizar(&sensor_theta1);
-	}
-	if (n_sensor == 1)
-	{
-		/* Atualizar leitura do �ngulo theta 1*/
-		float accX = sensor_theta1.ax * g * ACC_RESOLUTION;
-		float accZ = sensor_theta1.az * g * ACC_RESOLUTION;
-		float gyroY = sensor_theta1.gy * 1.3323e-04f;
-		sensor_theta1.ang_gyro = gyroY;
-		
-		float pitch = atan2f(-accX, accZ);
-		sensor_theta1.ang_pitch = pitch;
-
-		float Kal_Angle = -getAngle(&kalman_1, pitch, gyroY, Ts);
-		angulos_atualizados[1] = Kal_Angle;
-
-		theta1.Th = angulos_atualizados[1];
-
-		return 1;
-	}
-	if (n_sensor == 2)
-	{
-		return -3;
-	}
-	else
-	{
-		return 0;
-	}
-}
-
-void interrupt_angles(){
-    // Desativar a flag
+void DR_interrupt_100Hz(){
+     // Desativar a flag
     Timer32_clearInterruptFlag(TIMER32_0_BASE);
-    tempo_processamento = DR_tick_stop(false);
+    // Calculate time interruption
+    DR_tick_stop(false);
+    Interruption_Program();
     DR_tick_start();
 
-    DR_angles_update(0); /* Angle Theta1 Update*/
-	DR_angles_update(1);/* 'angulos_atualizados' update, Calculate for Kalman Filter*/
-	
-
-	 if(status_flag_print == 10){
-	 printf("\n\rangle_updated[1]: %f", angulos_atualizados[1]);
-	 printf("\n\r tempo_processamento = %0.4fms",tempo_processamento);
-	 status_flag_print = 0;
-	 }else{
-	 status_flag_print ++;}
-	 if(status_flag_diagnostic == 500){		
-		 uint_fast8_t k = 0;
-		for (k = 0 ;k < 5 ; k++ ){
-		diagnostic_erro[k] = 0;
-		}
-		status_flag_diagnostic = 0;
-	 }else{
-		 status_flag_diagnostic ++;
-	 }
 }
 
+/* Global Variables*/
+uint_fast8_t status_flag_uart = 0;
+uint_fast8_t led_change = 0;
+/* Vaiables for Debug */
+uint_fast16_t Initial_Rho = 4500;
+uint_fast16_t Initial_Theta1 = 4000;
+uint_fast16_t Initial_Theta2 = 6000;
+uint_fast16_t Initial_Theta3 = 6000;
 int main(void)
 {	WDT_A_holdTimer();
 
 	/* Pin Config */
 	DR_leds_sw_pin();
 	DR_uart_pin();
-	DR_i2c_pin();
-
-	/* Peripherals Config */
-	DR_uart_config(true);
-	DR_i2c_config(0);
-	DR_t32_config_Hz(0,100);
+	DR_i2c_pin();		// I2C0: 1.6(SDA) e 1.7(SCL) e I2C1: 6.4(SDA) e 6.5(SCL) 
+	DR_pwm_pin();		// PWM: 2.4 (PM_0.1), 2.5 (PM_0.2), 2.6 (PM_0.3), 2.7 (PM_0.4)
+	DR_debug_pin();		
 	
-	/* Inicializar Programas*/
+	/* Peripherals Config */
+	DR_uart_config(true);	  // Uart config in 115200 Kbps
+	DR_t32_config_Hz(0,100);  // Interruption config in 100 Hz
+	DR_i2c_config(0);		  // I2C0 Comunication in 400KHz
+	DR_i2c_config(1);		  // I2C1 Comunication in 400KHz
+	DR_pwm_config(&PWM_Rho);	  // PWM_rho in 50hz in 60000 resolution
+	DR_pwm_config(&PWM_Theta1);	  // PWM_theta1 in 50hz in 60000 resolution
+	DR_pwm_config(&PWM_Theta2);	  // PWM_theta2 in 50hz in 60000 resolution
+	DR_pwm_config(&PWM_Theta3);	  // PWM_theta3 in 50hz in 60000 resolution
+
+	/* Program initialization */
 	DR_leds_init();
 	DR_uart_init();
-	DR_i2c_init(0);
-	DR_t32_init(0);
-	
+
+	// Sensor Initialization 
 	int16_t status_init;
-	DR_mpu6050_ligar(1000);
+	DR_mpu6050_ligar(1000);		//6.1 MPU6050 Vcc pin
+	status_init = DR_mpu6050_init(&sensor_rho);
+	if (status_init != 1)
+		printf("\n\rIncorrect startup in rho, code(%d) ", status_init);
+	printf("Rho sensor initialized (ok!) ");
+	
 	status_init = DR_mpu6050_init(&sensor_theta1);
 	if (status_init != 1)
-		printf("\n\rIncorrect startup: %d", status_init);
-
-	/* Interrupt Config */
-	DR_uart_interrupt_receive();
-	DR_interrupt_on();
-	DR_t32_interrupt_init(0,interrupt_angles);
+		printf("\n\rIncorrect startup in theta1, code(%d) ", status_init);
+	printf("Theta 1 sensor initialized (ok!) ");
 	
+	status_init = DR_mpu6050_init(&sensor_theta2);
+	if (status_init != 1)
+		printf("\n\rIncorrect startup in theta2, code(%d) ", status_init);
+	printf("Theta 2 sensor initialized (ok!) ");
+	
+	status_init = DR_mpu6050_init(&sensor_theta3);
+	if (status_init != 1)
+		printf("\n\rIncorrect startup in theta3, code(%d) ", status_init);
+	printf("Theta 3 sensor initialized (ok!) ");
+
+	DR_leds_alterar(1);
+
+	// PWM Initialization
+	DR_pwm_init(&PWM_Rho, Initial_Rho); // initialize in 10%
+	DR_pwm_init(&PWM_Theta1, Initial_Theta1); // initialize in 10%
+	DR_pwm_init(&PWM_Theta2, Initial_Theta2); // initialize in 10%
+	DR_pwm_init(&PWM_Theta3, Initial_Theta3); // initialize in 10%
+	
+	/* Interrupt Config */
+	DR_uart_interrupt_receive();	// interrupt from input console
+	DR_t32_interrupt_init(0,DR_interrupt_100Hz);
+	DR_interrupt_on();
+
 	while (1)
 	{
+		DR_leds_alterar(led_change);
+		DR_delay_s(1);
+		 DR_PWM_setDuty(&PWM_Rho, Initial_Rho);
+		    DR_PWM_setDuty(&PWM_Theta1, Initial_Theta1);
+		    DR_PWM_setDuty(&PWM_Theta2, Initial_Theta2);
+		    DR_PWM_setDuty(&PWM_Theta3, Initial_Theta3);
 
-		if (status_flag_uart)
-		{
-			contador = UART_receiveData(EUSCI_A0_BASE) - 48;
-			printf("\n\n\r--Ledupdate(%d)",contador);
-			if (contador == 1)
-			{
-				int status_angulo;
-				status_angulo = DR_angles_update(0); /* Angle Theta1 Update*/
-				DR_tick_start();
-				status_angulo = DR_angles_update(1);/* 'angulos_atualizados' update, Calculate for Kalman Filter*/
-				DR_tick_stop(false);
-				printf("\n\rUpdate_return[1]: %d", status_angulo);
-				printf("\n\rangle_updated[1]: %f", angulos_atualizados[1]);
-			}
-			if (contador == 2)
-			{	/*Atualizar Sensor Theta 1*/
-				int status_atualizar;
-				DR_tick_start();
-				status_atualizar = DR_mpu6050_atualizar(&sensor_theta1);
-				DR_tick_stop(false);
-				printf("\n\rRetorno de atualiza��o %d", status_atualizar);
-				printf("\n\rSensor_theta1[ax]:%d\n\rSensor_theta1[ay]:%d\n\rSensor_theta1[az]:%d",
-						sensor_theta1.ax, sensor_theta1.ay, sensor_theta1.az);
-				printf("\n\rSensor_theta1[gx]:%d\n\rSensor_theta1[gy]:%d\n\rSensor_theta1[gz]:%d",
-						sensor_theta1.gx, sensor_theta1.gy, sensor_theta1.gz);
-				printf("\n\rSensor_theta1[temp]:%d", sensor_theta1.temp);
-			}
-			if (contador == 3)
-			{	/*Atualizar Sensor Rho*/
-				int status_atualizar;
-				DR_tick_start();
-				status_atualizar = DR_mpu6050_atualizar(&sensor_rho);
-				DR_tick_stop(false);
-				printf("\n\rRetorno de atualiza��o %d", status_atualizar);
-				printf("\n\rSensor_rho[ax]:%d\n\rSensor_rho[ay]:%d\n\rSensor_rho[az]:%d",
-						sensor_rho.ax, sensor_rho.ay, sensor_rho.az);
-				printf("\n\rSensor_rho[gx]:%d\n\rSensor_rho[gy]:%d\n\rSensor_rho[gz]:%d",
-						sensor_rho.gx, sensor_rho.gy, sensor_rho.gz);
-				printf("\n\rSensor_rho[temp]:%d", sensor_rho.temp);
-			}
-			if (contador == 4)
-			{ /* Primeiro Teste Ponto Flutuante*/
-
-				FPU_enableModule();
-//				FPU_enableLazyStacking();
-				volatile float fCalculate;
-				float ii;
-				DR_tick_start();
-				for (ii = 0.0f; ii < 20.0f; ii++)
-				{
-					fCalculate = (sinf(50.5f) * (12.2f / 50.1f) * 10.22f / 3.0f)
-							* ii;
-				}
-				DR_tick_stop(false);
-//				FPU_disableStacking();
-//				FPU_disableModule();
-
-			}
-			if (contador == 5)
-			{/* Segundo Teste Ponto Flutuante*/
-				volatile double fCalculate;
-				double ii;
-				DR_tick_start();
-				for (ii = 0; ii < 20; ii++)
-				{
-					fCalculate = (sin(50.5) * (12.2 / 50.1) * 10.22 / 3.0) * ii;
-				}
-				DR_tick_stop(false);
-			}
-			if (contador == 6)
-			{/* Teste Cálculo das Funções */
-				DR_tick_start();
-				References_Circle(&Circle); // 3.29ms // 0.0211ms
-				DR_tick_stop(false);
-				DR_tick_start();
-				Inverse_Kinematic(&Circle); // 5.92 - 6.20ms //0.1807ms
-				DR_tick_stop(false);
-				DR_tick_start();
-				Pd_Control_Law(&Circle); // 0.0183ms
-				DR_tick_stop(false);
-			}
-			if (contador == 7)
-			{	/* Diagnostic Satus */
-				Interrupt_disableInterrupt(INT_T32_INT1);			
-				printf("Diagnostic Erro[0]: %d",diagnostic_erro[0]);
-				printf("Diagnostic Erro[1]: %d",diagnostic_erro[1]);
-				printf("Diagnostic Erro[2]: %d",diagnostic_erro[2]);
-				printf("Diagnostic Erro[3]: %d",diagnostic_erro[3]);
-				printf("Diagnostic Erro[4]: %d",diagnostic_erro[4]);
-			}
-			
+		if(status_flag_uart == 1){
+			led_change = UART_receiveData(EUSCI_A0_BASE) - 48;
+			printf("\n\n\r--Ledupdate(%d)",led_change);
 			status_flag_uart = 0;
 		}
+
+	}
+
+}
+/*Interrupt for read sensors, execute control law and drive motors*/
+void Interruption_Program(){
+//	References_Circle(&Circle); // 3.29ms
+////	References_Saw(&Saw);
+//	Inverse_Kinematic(&Circle); // 5.92 - 6.20ms
+//	Varredura_Sensores(); //  2.96ms
+//	Calculate_PD_all_links(&Circle);
+////	Calculate_OL_all_links(&Circle);// 5.92 - 6.20ms
+//	Varredura_Motores(); //5.92 - 6.20ms
+    DR_PWM_setDuty(&PWM_Rho, Initial_Rho);
+    DR_PWM_setDuty(&PWM_Theta1, Initial_Theta1);
+    DR_PWM_setDuty(&PWM_Theta2, Initial_Theta2);
+    DR_PWM_setDuty(&PWM_Theta3, Initial_Theta3);
+
+}
+
+/*Update motor Values with new u[k]*/
+void Varredura_Motores() {
+// Atualizar os Motores com os valores de u[k] 
+	setPosition_ServoMotor(&PWM_Rho,rho.u);
+	setPosition_ServoMotor(&PWM_Theta1,theta1.u);
+	setPosition_ServoMotor(&PWM_Theta2,theta2.u);
+	setPosition_ServoMotor(&PWM_Theta3,theta3.u);
+}
+/*Calculate Open Loop control Law for all links*/
+void Calculate_OL_all_links(Reference_data *Trajectory){
+	Open_Loop_Control_Law(&rho,Trajectory->rho);
+	Open_Loop_Control_Law(&theta1,Trajectory->theta1);
+	Open_Loop_Control_Law(&theta2,Trajectory->theta2);
+	Open_Loop_Control_Law(&theta3,Trajectory->theta3);
+}
+/*Calculate PD control Law for all links*/
+void Calculate_PD_all_links(Reference_data *Trajectory){
+	Pd_Control_Law(&rho,Trajectory->rho);
+	Pd_Control_Law(&theta1,Trajectory->theta1);
+	Pd_Control_Law(&theta2,Trajectory->theta2);
+	Pd_Control_Law(&theta3,Trajectory->theta3);
+}
+/* All sensor update for Control Law */
+void Varredura_Sensores(){
+    int j;
+	for (j = 0; j < 4; j++) {
+		Angles_update(j);
 	}
 }
+/* Update Actual Value of angle link and update *links.Th*/
+void Angles_update(int sensor) {
+	if (sensor == 0) { 
+		/* Angle Rho (link Base)*/
+		DR_mpu6050_atualizar(&sensor_rho); // Update Gyro and accelerometers values
+		sensor_rho.ang_gyro = -sensor_rho.gz * 1.3323e-04f; // Calculate gyro for kalman Filter (put in float!)
+		rho.estimativa_motor = (getPosition_ServoMotor(&PWM_Rho));	// Update from internal model estimative.
+		
+		// Calculate the angle using a Kalman filter
+		sensor_rho.ang_updated = getAngle(&kalman_0, rho.estimativa_motor, sensor_rho.ang_gyro, Ts);
+		// Calculate the angle relative the others links
+		rho.Th = sensor_theta1.ang_updated - pi_2;
+
+	}
+	if (sensor == 1) { 
+		/* Angle Theta 1 (Link 1) */
+		DR_mpu6050_atualizar(&sensor_theta1); // Update Gyro and accelerometers values
+		sensor_theta1.ang_gyro = sensor_theta1.gy * 1.3323e-04f; // Calculate gyro for kalman Filter (put in float!)
+		
+		float accX = sensor_theta1.ax * g * ACC_RESOLUTION;	// Calculate ax from accelerometer by acc resolution
+		float accZ = sensor_theta1.az * g * ACC_RESOLUTION; // Calculate az from accelerometer by acc resolution
+		sensor_theta1.ang_pitch = atan2f(-accX, accZ);
+
+		// Calculate the angle using a Kalman filter
+		sensor_theta1.ang_updated = -getAngle(&kalman_1, sensor_theta1.ang_pitch, sensor_theta1.ang_gyro, Ts);
+		// Calculate the angle relative the others links
+		theta1.Th = sensor_theta1.ang_updated;
+	}
+	if (sensor == 2) {
+	/* Angle Theta 2 (Link 2) */
+		DR_mpu6050_atualizar(&sensor_theta2); // Update Gyro and accelerometers values
+		sensor_theta2.ang_gyro = sensor_theta2.gz * 1.3323e-04f; // Calculate gyro for kalman Filter (put in float!)
+		
+		float accX = sensor_theta2.ax * g * ACC_RESOLUTION;	// Calculate ax from accelerometer by acc resolution
+		float accY = sensor_theta2.ay * g * ACC_RESOLUTION; // Calculate az from accelerometer by acc resolution
+		sensor_theta2.ang_pitch = atan2f(accX, accY);
+
+		// Calculate the angle using a Kalman filter
+		sensor_theta2.ang_updated = getAngle(&kalman_2, sensor_theta2.ang_pitch, sensor_theta2.ang_gyro, Ts);
+		// Calculate the angle relative the others links
+		theta2.Th = (sensor_theta2.ang_updated + pi_2) - theta1.Th;
+	}
+	if (sensor == 3) {
+	/* Angle Theta 3 (Link 3) */
+		DR_mpu6050_atualizar(&sensor_theta3); // Update Gyro and accelerometers values
+		sensor_theta3.ang_gyro = sensor_theta3.gz * 1.3323e-04f; // Calculate gyro for kalman Filter (put in float!)
+		
+		float accX = sensor_theta3.ax * g * ACC_RESOLUTION;	// Calculate ax from accelerometer by acc resolution
+		float accY = sensor_theta3.ay * g * ACC_RESOLUTION; // Calculate az from accelerometer by acc resolution
+		sensor_theta3.ang_pitch = atan2f(accX, accY);
+
+		// Calculate the angle using a Kalman filter
+		sensor_theta3.ang_updated = getAngle(&kalman_3, sensor_theta3.ang_pitch, sensor_theta3.ang_gyro, Ts);
+		// Calculate the angle relative the others links
+		theta3.Th = (sensor_theta2.ang_updated + pi_2) - theta1.Th- theta2.Th;
+	}
+}
+
+void DR_debug_pin(){
+	/* Pino qualquer como saida para auxiliar o Debug */
+	// GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0);
+}
+/* Interrupt routine in 100Hz for control law*/	
 
 void EUSCIA0_IRQHandler(void)
 {
