@@ -58,7 +58,8 @@ uint8_t leitura[14];
 float magCalibration[3];
 float magValue[3];
 float magbias[3];
-typedef struct{
+typedef struct
+{
     float last_angle;
     float atual_angle;
     float velocidade_ang;
@@ -69,8 +70,11 @@ typedef struct{
 } filterSE;
 
 filterSE Gyroscope;
+uint32_t time = 0;
+bool aquisition_Data_Start = 0;
 
-void DR_Gyroscope_calibrate(dr_mpu_data_t *sensor, filterSE *Gyroscope){
+void DR_Gyroscope_calibrate(dr_mpu_data_t *sensor, filterSE *Gyroscope)
+{
     int i = 100;
     int Max_Value[3];
     int Min_Value[3];
@@ -84,37 +88,66 @@ void DR_Gyroscope_calibrate(dr_mpu_data_t *sensor, filterSE *Gyroscope){
     Max_Value[2] = sensor->gz;
     Min_Value[2] = sensor->gz;
 
-    while(i>0){
+    while (i > 0)
+    {
         DR_mpu9250_atualizar(&sensor_rho);
-            // Higher and lower X-axis Value
-            if(sensor->gx > Max_Value[0]){
-                Max_Value[0] = sensor->gx;
-            }
-            if(sensor->gx < Min_Value[0]){
-                Min_Value[0] = sensor->gx;
-            }
-            // Higher and lower Y-axis Value
-            if(sensor->gy > Max_Value[1]){
-                Max_Value[1] = sensor->gy;
-            }
-            if(sensor->gy < Min_Value[1]){
-                Min_Value[1] = sensor->gy;
-            }
-            // Higher and lower Z-axis Value
-            if(sensor->gz > Max_Value[2]){
-                Max_Value[2] = sensor->gz;
-            }
-            if(sensor->gz < Min_Value[2]){
-                Min_Value[2] = sensor->gz;
-            }
+        // Higher and lower X-axis Value
+        if (sensor->gx > Max_Value[0])
+        {
+            Max_Value[0] = sensor->gx;
+        }
+        if (sensor->gx < Min_Value[0])
+        {
+            Min_Value[0] = sensor->gx;
+        }
+        // Higher and lower Y-axis Value
+        if (sensor->gy > Max_Value[1])
+        {
+            Max_Value[1] = sensor->gy;
+        }
+        if (sensor->gy < Min_Value[1])
+        {
+            Min_Value[1] = sensor->gy;
+        }
+        // Higher and lower Z-axis Value
+        if (sensor->gz > Max_Value[2])
+        {
+            Max_Value[2] = sensor->gz;
+        }
+        if (sensor->gz < Min_Value[2])
+        {
+            Min_Value[2] = sensor->gz;
+        }
         DR_delay_k(1);
         i--;
     }
-    Gyroscope->Calibrationx = (Max_Value[0]+Min_Value[0])/2;   // Offset  x-axis
-    Gyroscope->Calibrationy = (Max_Value[1]+Min_Value[1])/2; // Offset  y-axis
-    Gyroscope->Calibrationz = (Max_Value[2]+Min_Value[2])/2; // Offset  z-axis
+    Gyroscope->Calibrationx = (Max_Value[0] + Min_Value[0]) / 2; // Offset  x-axis
+    Gyroscope->Calibrationy = (Max_Value[1] + Min_Value[1]) / 2; // Offset  y-axis
+    Gyroscope->Calibrationz = (Max_Value[2] + Min_Value[2]) / 2; // Offset  z-axis
 }
+void DR_aquisition_dados()
+{
+    if (time == 0)
+    {
+        Dr_clc_RGB_red;
+        Dr_clc_RGB_blue;
+        Dr_set_RGB_green;
+    }
 
+    printf("\n\r%d %.6f ", time, Gyroscope.atual_angle);
+
+    if (time == 6000)
+    {
+        Interrupt_disableInterrupt(INT_T32_INT1);
+        SysTick_disableInterrupt();
+        Dr_clc_RGB_green;
+        Dr_set_RGB_blue;
+    }
+    else
+    {
+        time++;
+    }
+}
 int DR_angles_update(uint16_t n_sensor)
 {
     if (n_sensor == 0)
@@ -139,9 +172,13 @@ int DR_angles_update(uint16_t n_sensor)
         sensor_rho.ang_updated = Kal_Angle;
 
         // Atualiza��o para o Filtro de Subrata��o Espectral
-        Gyroscope.velocidade_ang = (sensor_rho.gz-Gyroscope.Calibrationz)*1.3323e-04;
+        Gyroscope.velocidade_ang = (sensor_rho.gz - Gyroscope.Calibrationz)
+                * 1.3323e-04;
         Gyroscope.last_angle = Gyroscope.atual_angle;
-        Gyroscope.atual_angle = Gyroscope.last_angle + Gyroscope.velocidade_ang*Ts;
+        Gyroscope.atual_angle = Gyroscope.last_angle
+                + Gyroscope.velocidade_ang * Ts;
+        if (aquisition_Data_Start)
+        DR_aquisition_dados();
 
         return 1;
     }
@@ -212,11 +249,15 @@ int main(void)
     uint_fast8_t status_init = 0;
     status_init = DR_mpu9250_init(&sensor_rho);
     if (status_init)
+    {
         printf("\n\rSensores Inicializados");
+        Dr_set_RGB_red;
+    }
 
     // Auto Calibração do Magnetômetro
-     DR_magnetometer_calibrate(&sensor_rho);
-     DR_Gyroscope_calibrate(&sensor_rho, &Gyroscope);
+    //DR_magnetometer_calibrate(&sensor_rho);
+    DR_Gyroscope_calibrate(&sensor_rho, &Gyroscope);
+    Dr_set_RGB_blue;
 
     printf("\n\rSensores Calibrados");
     printf("\n\rOffsetX : %.4f", sensor_rho.mag_offset_x);
@@ -244,42 +285,19 @@ void EUSCIA0_IRQHandler(void)
     printf("\n\n\r--Ledupdate(%d)", contador);
     if (contador == 1)
     { /*Leitura do endereço*/
-        DR_i2c_read(0, 0x68, 0x75, RXData);
-        printf("\n\rMPU9250 i AM : 0x%x should be : 0x71", RXData[0]);
-
-        DR_i2c_read(0, 0x0C, 0x00, RXData);
-        printf("\n\rMPU9250 i AM : 0x%x should be: 0X48", RXData[0]);
+        aquisition_Data_Start = 1;
     }
     if (contador == 2)
     { /*Leitura acc e gyroscope*/
-        int status_erro;
-        status_erro = DR_i2c_readraw(0, 0x68, 0x3B, 14, leitura);
-        printf("\n\rRetorno do Status erro: %d", status_erro);
-        int j;
-        for (j = 0; j < 14; j++)
-            printf("\n\rleitura[%d]:%x", j, leitura[j]);
+
     }
     if (contador == 3)
     { /* Leitura Magnetometro calibração*/
-        float magCalibration[3];
-        initAK8963(magCalibration);
-
-        printf("\n\rMag:X-Axis sensitivity adjustment value %.5f",
-               magCalibration[0]);
-        printf("\n\rMag:Y-Axis sensitivity adjustment value %.5f",
-               magCalibration[1]);
-        printf("\n\rMag:Z-Axis sensitivity adjustment value %.5f",
-               magCalibration[2]);
 
     }
     if (contador == 4)
     { /* Leitura Magnetometro data*/
-        int status_erro;
-        status_erro = DR_i2c_readraw(0, 0x0C, 0x03, 7, leitura);
-        printf("\n\rRetorno do Status erro: %d", status_erro);
-        int j;
-        for (j = 0; j < 14; j++)
-            printf("\n\rleitura[%d]:%x", j, leitura[j]);
+
     }
 
 }
