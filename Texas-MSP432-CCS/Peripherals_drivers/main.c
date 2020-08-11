@@ -134,7 +134,7 @@ void DR_aquisition_dados()
         Dr_set_RGB_green;
     }
 
-    printf("\n\r%d %.6f ", time, Gyroscope.atual_angle);
+    printf("\n\r%d %.6f ", time, Gyroscope.velocidade_ang);
 
     if (time == 6000)
     {
