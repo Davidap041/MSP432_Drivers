@@ -193,8 +193,7 @@ int DR_angles_update(uint16_t n_sensor)
 }
 
 void interrupt_angles()
-{
-    // Desativar a flag
+{   // Desativar a flag
     Timer32_clearInterruptFlag(TIMER32_0_BASE);
     tempo_processamento = DR_tick_stop(false);
     DR_tick_start();

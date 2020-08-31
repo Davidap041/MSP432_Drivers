@@ -49,15 +49,15 @@
 #define ang_3_b ((theta3_pwm_max*theta3_angle_min - theta3_pwm_min*theta3_angle_max)/(theta3_pwm_max - theta3_pwm_min))
 
 // Parameter to estimate position for motor rho
-#define a0 1.0f
-#define a1 -3.635f
-#define a2 5.683f
-#define a3 -4.721f
-#define a4 2.068f
-#define a5 -0.3792f
+#define rho_a0 1.0f
+#define rho_a1 -3.635f
+#define rho_a2 5.683f
+#define rho_a3 -4.721f
+#define rho_a4 2.068f
+#define rho_a5 -0.3792f
 
-#define b0 0.0f
-#define b1 0.01931f
+#define rho_b0 0.0f
+#define rho_b1 0.01931f
 
 #define Ts 0.01f
 
@@ -206,10 +206,10 @@ float estimar_posicao_rho(float entrada)
 	u_estimado[k - 1] = u_estimado[k];
 	u_estimado[k] = entrada;
 
-	y_estimado[k] = b0 * u_estimado[k] + b1 * u_estimado[k - 1]
-			- a1 * y_estimado[k - 1] - a2 * y_estimado[k - 2]
-			- a3 * y_estimado[k - 3] - a4 * y_estimado[k - 4]
-			- a5 * y_estimado[k - 5];
+	y_estimado[k] = rho_b0 * u_estimado[k] + rho_b1 * u_estimado[k - 1]
+			- rho_a1 * y_estimado[k - 1] - rho_a2 * y_estimado[k - 2]
+			- rho_a3 * y_estimado[k - 3] - rho_a4 * y_estimado[k - 4]
+			- rho_a5 * y_estimado[k - 5];
 
 	return y_estimado[k];
 }

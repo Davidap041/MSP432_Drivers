@@ -11,7 +11,11 @@
 // Texas Instruments Inc.
 // January 2015
 //*****************************************************************************
-
+#include "Drivers_Control.h"
+#include "mpu6050.h"
+#include "Kalman.h"
+#include "Control_Law.h"
+#include "function.h"
 /*other includes*/
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 #include <stdint.h>
@@ -40,17 +44,24 @@
 //#define SMCLK_FREQUENCY     48000000
 //#define SAMPLE_FREQUENCY    8000
 
-extern float wave_input[256];
+extern float wave_input1[256];
+extern float wave_input2[256];
 uint16_t fftSize = SAMPLE_LENGTH;
 uint32_t ifftFlag = 0;
 uint32_t doBitReverse = 1;
 volatile arm_status status;
+uint16_t define_wave = 0;
 
 float32_t hann[SAMPLE_LENGTH];
 float32_t data_array1[SAMPLE_LENGTH];
 float32_t data_input[SAMPLE_LENGTH * 2];
-float32_t data_output[SAMPLE_LENGTH];
-uint32_t color = 0;
+float32_t fft_results[SAMPLE_LENGTH];
+float32_t ifft_results[SAMPLE_LENGTH];
+float32_t fft_results_abs[SAMPLE_LENGTH];
+float32_t fft_w_sigmoid[SAMPLE_LENGTH];
+float32_t eq_sigmoid[SAMPLE_LENGTH];
+float a = -2;
+float c = 50;
 
 int main(void)
 {
@@ -60,48 +71,30 @@ int main(void)
      * Perform a complex FFT on the input samples. The result is calculated
      * in-place and will be stored in the input buffer.
      */
-//    for ()
-//    data_array1 =
-    /*
-     * FFT code here!
-     *
-     * */
-
 // Initialize Hann Window
-    int n;
-    for (n = 0; n < SAMPLE_LENGTH; n++)
+    while (1)
     {
-//         hann[n] = 0.5f - 0.5f * cosf((2 * PI * n) / (SAMPLE_LENGTH - 1));
-        data_array1[n] = wave_input[n];
-    }
-    /* Computer real FFT using the completed data buffer */
-    arm_rfft_fast_instance_f32 instance;
-    status = arm_rfft_fast_init_f32(&instance, fftSize);
 
-    arm_rfft_fast_f32(&instance, data_array1, data_input, ifftFlag);
-    /* Calculate magnitude of FFT complex output */
-    arm_abs_f32(data_input, data_output, fftSize);
-    float maxValue;
-    uint32_t maxIndex = 0;
-
-    arm_max_f32(data_output, fftSize, &maxValue, &maxIndex);
-
-    if (maxIndex <= 64)
-    {
-        color = ((uint32_t)(0xFF * (maxIndex / 64.0f)) << 8) + 0xFF;
+        int n;
+        for (n = 0; n < SAMPLE_LENGTH; n++)
+        {
+            data_input[n] = wave_input1[n];
+        }
+        /* Computer real FFT using the completed data buffer */
+        arm_rfft_fast_instance_f32 instance;
+        status = arm_rfft_fast_init_f32(&instance, fftSize);
+        arm_rfft_fast_f32(&instance, data_input, fft_results, ifftFlag);
+        /* Calculate magnitude of FFT complex output */
+        arm_abs_f32(fft_results, fft_results_abs, fftSize);
+        /*Multiplicate for sigmoide*/
+        int k;
+        for (k = 0; k < SAMPLE_LENGTH; k++)
+        {
+            fft_w_sigmoid[k] = fft_results[k]
+                    * (1 / (1 + expf(-a * (k - c))));
+            eq_sigmoid[k] = 1 / (1 + expf(-a * (k - c)));
+        }
+        /* Calculate Inverse FFT*/
+        arm_rfft_fast_f32(&instance, fft_w_sigmoid, ifft_results, 1);
     }
-    else if (maxIndex <= 128)
-    {
-        color = (0xFF - (uint32_t)(0xFF * ((maxIndex - 64) / 64.0f))) + 0xFF00;
-    }
-    else if (maxIndex <= 192)
-    {
-        color = ((uint32_t)(0xFF * ((maxIndex - 128) / 64.0f)) << 16) + 0xFF00;
-    }
-    else
-    {
-        color = ((0xFF - (uint32_t)(0xFF * ((maxIndex - 192) / 64.0f))) << 8)
-                + 0xFF0000;
-    }
-    return 0;
 }
