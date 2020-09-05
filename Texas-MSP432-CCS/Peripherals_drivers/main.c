@@ -73,6 +73,22 @@ filterSE Gyroscope;
 uint32_t time = 0;
 bool aquisition_Data_Start = 0;
 
+//  Supported FFT Lengths are 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192.
+#define WINDOW_LENGTH 32
+float data_realtime = 0;
+uint16_t contador_wave = 0;
+float window_data[WINDOW_LENGTH];
+uint16_t contador_window = 0;
+uint16_t fftSize = WINDOW_LENGTH;
+
+float32_t data_input[WINDOW_LENGTH * 2];
+uint32_t ifftFlag = 0;
+float32_t fft_results[WINDOW_LENGTH];
+float32_t fft_results_abs[WINDOW_LENGTH];
+float32_t fft_w_sigmoid[WINDOW_LENGTH];
+float32_t ifft_results[WINDOW_LENGTH];
+float32_t eq_sigmoid[WINDOW_LENGTH];
+
 void DR_Gyroscope_calibrate(dr_mpu_data_t *sensor, filterSE *Gyroscope)
 {
     int i = 100;
@@ -148,6 +164,25 @@ void DR_aquisition_dados()
         time++;
     }
 }
+void calculatefft()
+{
+    /* Computer real FFT using the completed data buffer */
+    arm_rfft_fast_instance_f32 instance;
+    status = arm_rfft_fast_init_f32(&instance, fftSize);
+    arm_rfft_fast_f32(&instance, data_input, fft_results, ifftFlag);
+
+    /*Multiplicate for sigmoide*/
+    int k;
+    for (k = 0; k < WINDOW_LENGTH; k++)
+    {
+        fft_w_sigmoid[k] = fft_results[k] * (1 / (1 + expf(-a * (k - c))));
+//        eq_sigmoid[k] = 1 / (1 + expf(-a * (k - c)));
+    }
+
+    /* Calculate Inverse FFT*/
+    arm_rfft_fast_f32(&instance, fft_w_sigmoid, ifft_results, 1);
+}
+
 int DR_angles_update(uint16_t n_sensor)
 {
     if (n_sensor == 0)
@@ -178,12 +213,26 @@ int DR_angles_update(uint16_t n_sensor)
         Gyroscope.atual_angle = Gyroscope.last_angle
                 + Gyroscope.velocidade_ang * Ts;
         if (aquisition_Data_Start)
-        DR_aquisition_dados();
+            DR_aquisition_dados();
 
         return 1;
     }
     if (n_sensor == 2)
     {
+        float accX = sensor_rho.mx - sensor_rho.mag_offset_x; // Magnetometer X-axis // Testar multiplicar por 0.1
+        float accY = sensor_rho.my - sensor_rho.mag_offset_y; // Magnetometer Y-axis // Testar multiplicar por 0.1
+
+        float gyroZ = sensor_rho.gz * 1.3323e-04f; // Gyroscope Z euler angle
+
+        sensor_rho.ang_gyro = gyroZ; // store Z euler angle gyroscope
+
+        float pitch = atan2f(accY, accX); // calculate angle Z from Magnetometer
+        // -y/x n funcionou
+        sensor_rho.ang_pitch = pitch; // Store
+        // obs test the movement in a 180 degree in relation the angle of calibration
+        float Kal_Angle = getAngle(&kalman_0, pitch, gyroZ, Ts);
+        sensor_rho.ang_updated = Kal_Angle;
+
         return -3;
     }
     else
@@ -195,30 +244,27 @@ int DR_angles_update(uint16_t n_sensor)
 void interrupt_angles()
 {   // Desativar a flag
     Timer32_clearInterruptFlag(TIMER32_0_BASE);
-    tempo_processamento = DR_tick_stop(false);
     DR_tick_start();
-
     DR_mpu9250_atualizar(&sensor_rho);
 
-    /*Calculate Magnetometer Value for Debug*/
-    magValue[0] = sensor_rho.mx - sensor_rho.mag_offset_x; // Magnetometer X-axis
-    magValue[1] = sensor_rho.my - sensor_rho.mag_offset_y; // Magnetometer Y-axis
-    magValue[2] = sensor_rho.mz - sensor_rho.mag_offset_z; // Magnetometer Z-axis
-
-    // Calculate Kalman Filter Angle Rho
-    DR_angles_update(1);
-
-    if (status_flag_print == 10)
+    if (contador_window > WINDOW_LENGTH - 1)
     {
-        status_flag_print = 0;
+        calculatefft();         // Calculate FSE
+        DR_angles_update(2);    // Calculate Kalman Filter
+
+        // upgrade new data
+        contador_window = 0;
+        data_input[contador_window] = sensor_rho.gz;
+        contador_window++;
+
     }
     else
     {
-        status_flag_print++;
+        data_input[contador_window] = sensor_rho.gz;
+        contador_window++;
     }
-    if (status_flag_diagnostic == 500)
-    {
-    }
+
+    tempo_processamento = DR_tick_stop(false);
 }
 
 int main(void)
@@ -233,7 +279,7 @@ int main(void)
     /* Peripherals Config */
     DR_uart_config(true);
     DR_i2c_config(0);
-    DR_t32_config_Hz(0, 100);
+    DR_t32_config_Hz(0, 10);
 
     /* Inicializar Programas*/
     DR_leds_init();

@@ -68,15 +68,29 @@ float32_t fft_w_sigmoid[WINDOW_LENGTH];
 float32_t ifft_results[WINDOW_LENGTH];
 float32_t eq_sigmoid[WINDOW_LENGTH];
 
-void calculatefft()
+float32_t sinal_filtrado;
+
+float32_t calculatefft(uint16_t position)
 {
     /* Computer real FFT using the completed data buffer */
+    int k;
+    for (k = 0; k < WINDOW_LENGTH; k++)
+    {
+        if ( k + position >= WINDOW_LENGTH - 1)
+        {
+            data_input[k] = window_data[k + position + 1 - WINDOW_LENGTH];
+        }
+        else
+        {
+            data_input[k] = window_data[k + position + 1 ];
+        }
+    }
     arm_rfft_fast_instance_f32 instance;
     status = arm_rfft_fast_init_f32(&instance, fftSize);
     arm_rfft_fast_f32(&instance, data_input, fft_results, ifftFlag);
 
     /*Multiplicate for sigmoide*/
-    int k;
+
     for (k = 0; k < WINDOW_LENGTH; k++)
     {
         fft_w_sigmoid[k] = fft_results[k] * (1 / (1 + expf(-a * (k - c))));
@@ -85,10 +99,13 @@ void calculatefft()
 
     /* Calculate Inverse FFT*/
     arm_rfft_fast_f32(&instance, fft_w_sigmoid, ifft_results, 1);
+
+    return ifft_results[position];
 }
 void interrupt_pass_wave()
 {   // Desativar a flag
     Timer32_clearInterruptFlag(TIMER32_0_BASE);
+    DR_tick_start();
 
     if (contador_wave > SAMPLE_LENGTH - 1)
     {
@@ -103,21 +120,19 @@ void interrupt_pass_wave()
     }
     if (contador_window > WINDOW_LENGTH - 1)
     {
-        DR_tick_start();
-        calculatefft();
-        tempo_processamento = DR_tick_stop(false);
-
         contador_window = 0;
-        contador_window = data_realtime;
+        window_data[contador_window] = data_realtime;
+        sinal_filtrado = calculatefft(contador_window);
         contador_window++;
     }
     else
     {
         window_data[contador_window] = data_realtime;
-        data_input[contador_window] = window_data[contador_window];
+        sinal_filtrado = calculatefft(contador_window);
+        tempo_processamento = DR_tick_stop(false);
         contador_window++;
     }
-
+    tempo_processamento = DR_tick_stop(false);
 }
 
 int main(void)
