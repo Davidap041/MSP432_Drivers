@@ -59,7 +59,7 @@
 #define rho_b0 0.0f
 #define rho_b1 0.01931f
 
-#define Ts 0.01f
+#define Ts 0.1f
 
 // Variáveis da Estimação de posição do Elo 1 Ângulo Rho
 // valores Passados de Entrada e Saída atualidos na frequência de 100Hz

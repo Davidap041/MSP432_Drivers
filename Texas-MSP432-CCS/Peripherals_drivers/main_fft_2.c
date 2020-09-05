@@ -100,7 +100,7 @@ float32_t calculatefft(uint16_t position)
     /* Calculate Inverse FFT*/
     arm_rfft_fast_f32(&instance, fft_w_sigmoid, ifft_results, 1);
 
-    return ifft_results[position];
+    return ifft_results[WINDOW_LENGTH-1];
 }
 void interrupt_pass_wave()
 {   // Desativar a flag

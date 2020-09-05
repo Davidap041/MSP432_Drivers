@@ -10,6 +10,11 @@
 #include "Kalman.h"
 #include "Control_Law.h"
 #include "function.h"
+#include <arm_math.h>
+#include <arm_const_structs.h>
+
+/* Misc. definitions. */
+#define PI               3.14159265358979f
 
 uint8_t RXData[2];
 uint8_t contador = 1;
@@ -51,7 +56,6 @@ uint_fast8_t status_flag_uart = 0;
 uint_fast8_t status_flag_angle_update = 0;
 uint_fast8_t status_flag_print = 0;
 uint_fast16_t status_flag_diagnostic = 0;
-double tempo_processamento = 0;
 /* For Debug graph*/
 uint8_t RXData[2];
 uint8_t leitura[14];
@@ -81,6 +85,11 @@ float window_data[WINDOW_LENGTH];
 uint16_t contador_window = 0;
 uint16_t fftSize = WINDOW_LENGTH;
 
+volatile arm_status status;
+float a = -2;
+float c = 10;
+double tempo_processamento = 0;
+float32_t sinal_filtrado;
 float32_t data_input[WINDOW_LENGTH * 2];
 uint32_t ifftFlag = 0;
 float32_t fft_results[WINDOW_LENGTH];
@@ -88,6 +97,8 @@ float32_t fft_results_abs[WINDOW_LENGTH];
 float32_t fft_w_sigmoid[WINDOW_LENGTH];
 float32_t ifft_results[WINDOW_LENGTH];
 float32_t eq_sigmoid[WINDOW_LENGTH];
+
+float sinal_n_filtrado;
 
 void DR_Gyroscope_calibrate(dr_mpu_data_t *sensor, filterSE *Gyroscope)
 {
@@ -164,23 +175,35 @@ void DR_aquisition_dados()
         time++;
     }
 }
-void calculatefft()
+float32_t calculatefft(uint16_t position)
 {
     /* Computer real FFT using the completed data buffer */
+    int k;
+    for (k = 0; k < WINDOW_LENGTH; k++)
+    {
+        if (k + position >= WINDOW_LENGTH - 1)
+        {
+            data_input[k] = window_data[k + position + 1 - WINDOW_LENGTH];
+        }
+        else
+        {
+            data_input[k] = window_data[k + position + 1];
+        }
+    }
+
     arm_rfft_fast_instance_f32 instance;
     status = arm_rfft_fast_init_f32(&instance, fftSize);
     arm_rfft_fast_f32(&instance, data_input, fft_results, ifftFlag);
 
     /*Multiplicate for sigmoide*/
-    int k;
     for (k = 0; k < WINDOW_LENGTH; k++)
     {
         fft_w_sigmoid[k] = fft_results[k] * (1 / (1 + expf(-a * (k - c))));
 //        eq_sigmoid[k] = 1 / (1 + expf(-a * (k - c)));
     }
-
     /* Calculate Inverse FFT*/
     arm_rfft_fast_f32(&instance, fft_w_sigmoid, ifft_results, 1);
+    return ifft_results[position];
 }
 
 int DR_angles_update(uint16_t n_sensor)
@@ -222,7 +245,7 @@ int DR_angles_update(uint16_t n_sensor)
         float accX = sensor_rho.mx - sensor_rho.mag_offset_x; // Magnetometer X-axis // Testar multiplicar por 0.1
         float accY = sensor_rho.my - sensor_rho.mag_offset_y; // Magnetometer Y-axis // Testar multiplicar por 0.1
 
-        float gyroZ = sensor_rho.gz * 1.3323e-04f; // Gyroscope Z euler angle
+        float gyroZ = sinal_filtrado * 1.3323e-04f; // Gyroscope Z euler angle
 
         sensor_rho.ang_gyro = gyroZ; // store Z euler angle gyroscope
 
@@ -246,21 +269,21 @@ void interrupt_angles()
     Timer32_clearInterruptFlag(TIMER32_0_BASE);
     DR_tick_start();
     DR_mpu9250_atualizar(&sensor_rho);
+    sinal_n_filtrado = sensor_rho.gz;
 
     if (contador_window > WINDOW_LENGTH - 1)
     {
-        calculatefft();         // Calculate FSE
-        DR_angles_update(2);    // Calculate Kalman Filter
-
-        // upgrade new data
         contador_window = 0;
-        data_input[contador_window] = sensor_rho.gz;
+        window_data[contador_window] = sensor_rho.gz;
+        sinal_filtrado = calculatefft(contador_window);
+        DR_angles_update(2);    // Calculate Kalman Filter
         contador_window++;
-
     }
     else
     {
-        data_input[contador_window] = sensor_rho.gz;
+        window_data[contador_window] = sensor_rho.gz;
+        sinal_filtrado = calculatefft(contador_window);
+        DR_angles_update(2);    // Calculate Kalman Filter
         contador_window++;
     }
 
