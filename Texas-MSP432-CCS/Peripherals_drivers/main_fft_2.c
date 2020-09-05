@@ -47,14 +47,12 @@
 extern float wave_input1[SAMPLE_LENGTH];
 extern float wave_input2[SAMPLE_LENGTH];
 
-
 volatile arm_status status;
-
-
 float a = -2;
 float c = 10;
 double tempo_processamento = 0;
 
+//  Supported FFT Lengths are 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192.
 #define WINDOW_LENGTH 32
 float data_realtime = 0;
 uint16_t contador_wave = 0;
@@ -70,33 +68,27 @@ float32_t fft_w_sigmoid[WINDOW_LENGTH];
 float32_t ifft_results[WINDOW_LENGTH];
 float32_t eq_sigmoid[WINDOW_LENGTH];
 
+void calculatefft()
+{
+    /* Computer real FFT using the completed data buffer */
+    arm_rfft_fast_instance_f32 instance;
+    status = arm_rfft_fast_init_f32(&instance, fftSize);
+    arm_rfft_fast_f32(&instance, data_input, fft_results, ifftFlag);
 
-void calculatefft(){
-    int n;
-            for (n = 0; n < WINDOW_LENGTH; n++)
-            {
-                data_input[n] = window_data[n];
-            }
-            /* Computer real FFT using the completed data buffer */
-            arm_rfft_fast_instance_f32 instance;
-            status = arm_rfft_fast_init_f32(&instance, fftSize);
-            arm_rfft_fast_f32(&instance, data_input, fft_results, ifftFlag);
-            /* Calculate magnitude of FFT complex output */
-            arm_abs_f32(fft_results, fft_results_abs, fftSize);
-            /*Multiplicate for sigmoide*/
-            int k;
-            for (k = 0; k < WINDOW_LENGTH; k++)
-            {
-                fft_w_sigmoid[k] = fft_results[k] * (1 / (1 + expf(-a * (k - c))));
-                eq_sigmoid[k] = 1 / (1 + expf(-a * (k - c)));
-            }
-            /* Calculate Inverse FFT*/
-            arm_rfft_fast_f32(&instance, fft_w_sigmoid, ifft_results, 1);
+    /*Multiplicate for sigmoide*/
+    int k;
+    for (k = 0; k < WINDOW_LENGTH; k++)
+    {
+        fft_w_sigmoid[k] = fft_results[k] * (1 / (1 + expf(-a * (k - c))));
+//        eq_sigmoid[k] = 1 / (1 + expf(-a * (k - c)));
+    }
+
+    /* Calculate Inverse FFT*/
+    arm_rfft_fast_f32(&instance, fft_w_sigmoid, ifft_results, 1);
 }
 void interrupt_pass_wave()
 {   // Desativar a flag
     Timer32_clearInterruptFlag(TIMER32_0_BASE);
-
 
     if (contador_wave > SAMPLE_LENGTH - 1)
     {
@@ -109,11 +101,12 @@ void interrupt_pass_wave()
         data_realtime = wave_input2[contador_wave];
         contador_wave++;
     }
-    if (contador_window > WINDOW_LENGTH-1)
+    if (contador_window > WINDOW_LENGTH - 1)
     {
         DR_tick_start();
         calculatefft();
         tempo_processamento = DR_tick_stop(false);
+
         contador_window = 0;
         contador_window = data_realtime;
         contador_window++;
@@ -121,16 +114,16 @@ void interrupt_pass_wave()
     else
     {
         window_data[contador_window] = data_realtime;
-        contador_window ++;
+        data_input[contador_window] = window_data[contador_window];
+        contador_window++;
     }
-
 
 }
 
 int main(void)
 {
     WDT_A_holdTimer();
-    DR_t32_config_Hz(0, 100);
+    DR_t32_config_Hz(0, 10);
     DR_t32_init(0);
     DR_t32_interrupt_init(0, interrupt_pass_wave);
 
@@ -142,7 +135,6 @@ int main(void)
 // Initialize Hann Window
     while (1)
     {
-
 
     }
 }
