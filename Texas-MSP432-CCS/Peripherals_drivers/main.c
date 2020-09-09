@@ -87,7 +87,7 @@ uint16_t fftSize = WINDOW_LENGTH;
 
 volatile arm_status status;
 float a = -2;
-float c = 10;
+float c = 50;
 double tempo_processamento = 0;
 float32_t sinal_filtrado;
 float32_t data_input[WINDOW_LENGTH * 2];
@@ -203,7 +203,7 @@ float32_t calculatefft(uint16_t position)
     }
     /* Calculate Inverse FFT*/
     arm_rfft_fast_f32(&instance, fft_w_sigmoid, ifft_results, 1);
-    return ifft_results[position];
+    return ifft_results[WINDOW_LENGTH - 1];
 }
 
 int DR_angles_update(uint16_t n_sensor)
