@@ -20,8 +20,8 @@ uint8_t RXData[2];
 uint8_t contador = 1;
 // Vari�veis relacionadas ao filtro de kalman
 // Instancia dos Filtros
-Kalman_data kalman_0 = { .Q_angle = 0.1f, .Q_bias = 0.01f, .R_measure = 0.1f,
-                         .angle = 0, .bias = 0 };
+Kalman_data kalman_0 = { .Q_angle = 0.001f, .Q_bias = 0.0001f, .R_measure = 0.03f,
+                         .angle = 0.0f, .bias = 0.0f };
 Kalman_data kalman_1 = { .Q_angle = 0.001f, .Q_bias = 0.0001f, .R_measure =
                                  0.03f,
                          .angle = 0.0f, .bias = 0.0f };
@@ -78,7 +78,7 @@ uint32_t time = 0;
 bool aquisition_Data_Start = 0;
 
 //  Supported FFT Lengths are 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192.
-#define WINDOW_LENGTH 32
+#define WINDOW_LENGTH 128
 float data_realtime = 0;
 uint16_t contador_wave = 0;
 float window_data[WINDOW_LENGTH];
@@ -86,8 +86,8 @@ uint16_t contador_window = 0;
 uint16_t fftSize = WINDOW_LENGTH;
 
 volatile arm_status status;
-float a = -2;
-float c = 50;
+float a = -0.1;
+float c = 6;
 double tempo_processamento = 0;
 float32_t sinal_filtrado;
 float32_t data_input[WINDOW_LENGTH * 2];
@@ -255,8 +255,18 @@ int DR_angles_update(uint16_t n_sensor)
         // obs test the movement in a 180 degree in relation the angle of calibration
         float Kal_Angle = getAngle(&kalman_0, pitch, gyroZ, Ts);
         sensor_rho.ang_updated = Kal_Angle;
-
         return -3;
+    }
+    if (n_sensor == 3)
+    {
+        float gyroZ = sensor_rho.gz * 1.3323e-04f; // Gyroscope Z euler angle
+        float pitch = sinal_filtrado; // calculate angle Z from Magnetometer
+        // -y/x n funcionou
+        sensor_rho.ang_pitch = pitch; // Store
+        sensor_rho.ang_gyro = gyroZ; // store Z euler angle gyroscope
+        // obs test the movement in a 180 degree in relation the angle of calibration
+        float Kal_Angle = getAngle(&kalman_0, pitch, gyroZ, Ts);
+        sensor_rho.ang_updated = Kal_Angle;
     }
     else
     {
@@ -269,21 +279,28 @@ void interrupt_angles()
     Timer32_clearInterruptFlag(TIMER32_0_BASE);
     DR_tick_start();
     DR_mpu9250_atualizar(&sensor_rho);
-    sinal_n_filtrado = sensor_rho.gz;
+//    sinal_n_filtrado = sensor_rho.gz;
+    float accX = sensor_rho.mx - sensor_rho.mag_offset_x; // Magnetometer X-axis // Testar multiplicar por 0.1
+    float accY = sensor_rho.my - sensor_rho.mag_offset_y; // Magnetometer Y-axis // Testar multiplicar por 0.1
+    sinal_n_filtrado = atan2f(accY, accX);
 
     if (contador_window > WINDOW_LENGTH - 1)
     {
         contador_window = 0;
-        window_data[contador_window] = sensor_rho.gz;
+//        window_data[contador_window] = sensor_rho.gz;
+        window_data[contador_window] = sinal_n_filtrado;
         sinal_filtrado = calculatefft(contador_window);
-        DR_angles_update(2);    // Calculate Kalman Filter
+//        DR_angles_update(2);    // Calculate Kalman Filter
+        DR_angles_update(3);
         contador_window++;
     }
     else
     {
-        window_data[contador_window] = sensor_rho.gz;
+//        window_data[contador_window] = sensor_rho.gz;
+        window_data[contador_window] = sinal_n_filtrado;
         sinal_filtrado = calculatefft(contador_window);
-        DR_angles_update(2);    // Calculate Kalman Filter
+//        DR_angles_update(2);    // Calculate Kalman Filter
+        DR_angles_update(3);
         contador_window++;
     }
 
@@ -302,7 +319,7 @@ int main(void)
     /* Peripherals Config */
     DR_uart_config(true);
     DR_i2c_config(0);
-    DR_t32_config_Hz(0, 10);
+    DR_t32_config_Hz(0, 100);
 
     /* Inicializar Programas*/
     DR_leds_init();
@@ -323,7 +340,7 @@ int main(void)
     }
 
     // Auto Calibração do Magnetômetro
-    //DR_magnetometer_calibrate(&sensor_rho);
+    DR_magnetometer_calibrate(&sensor_rho);
     DR_Gyroscope_calibrate(&sensor_rho, &Gyroscope);
     Dr_set_RGB_blue;
 
