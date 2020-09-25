@@ -70,6 +70,8 @@ typedef struct
 
 	/* Final Angle Update by kalman Filter*/
 	float ang_updated;
+	float ang_Kalman;
+	float ang_Luenberger;
 
 } dr_mpu_data_t;
 

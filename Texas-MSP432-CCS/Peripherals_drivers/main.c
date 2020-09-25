@@ -10,6 +10,7 @@
 #include "Kalman.h"
 #include "Control_Law.h"
 #include "function.h"
+#include "Luenberger.h"
 #include <arm_math.h>
 #include <arm_const_structs.h>
 
@@ -18,9 +19,11 @@
 
 uint8_t RXData[2];
 uint8_t contador = 1;
-// Vari�veis relacionadas ao filtro de kalman
+// Vari�veis relacionadas aos filtro
+Luenberger_data luenberger_0 = { .pole1 = 0.1f, .pole2 = 0.2f };
 // Instancia dos Filtros
-Kalman_data kalman_0 = { .Q_angle = 0.001f, .Q_bias = 0.0001f, .R_measure = 0.03f,
+Kalman_data kalman_0 = { .Q_angle = 0.001f, .Q_bias = 0.0001f, .R_measure =
+                                 0.03f,
                          .angle = 0.0f, .bias = 0.0f };
 Kalman_data kalman_1 = { .Q_angle = 0.001f, .Q_bias = 0.0001f, .R_measure =
                                  0.03f,
@@ -268,10 +271,24 @@ int DR_angles_update(uint16_t n_sensor)
         float Kal_Angle = getAngle(&kalman_0, pitch, gyroZ, Ts);
         sensor_rho.ang_updated = Kal_Angle;
     }
+    if (n_sensor == 4)
+    {
+        float gyroZ = sensor_rho.gz * 1.3323e-04f; // Gyroscope Z euler angle
+        float pitch = sinal_filtrado; // calculate angle Z from Magnetometer
+        // -y/x n funcionou
+        sensor_rho.ang_pitch = pitch; // Store
+        sensor_rho.ang_gyro = gyroZ; // store Z euler angle gyroscope
+        // obs test the movement in a 180 degree in relation the angle of calibration
+        sensor_rho.ang_Kalman = getAngle(&kalman_0, pitch, gyroZ, Ts);
+        sensor_rho.ang_Luenberger = getAngle_Luen2(&luenberger_0, pitch, gyroZ,
+        Ts);
+//        sensor_rho.ang_updated = Luen_Angle;
+    }
     else
     {
         return 0;
     }
+    return 1;
 }
 
 void interrupt_angles()
@@ -291,7 +308,7 @@ void interrupt_angles()
         window_data[contador_window] = sinal_n_filtrado;
         sinal_filtrado = calculatefft(contador_window);
 //        DR_angles_update(2);    // Calculate Kalman Filter
-        DR_angles_update(3);
+        DR_angles_update(4);
         contador_window++;
     }
     else
@@ -300,7 +317,7 @@ void interrupt_angles()
         window_data[contador_window] = sinal_n_filtrado;
         sinal_filtrado = calculatefft(contador_window);
 //        DR_angles_update(2);    // Calculate Kalman Filter
-        DR_angles_update(3);
+        DR_angles_update(4);
         contador_window++;
     }
 
@@ -357,6 +374,8 @@ int main(void)
     DR_interrupt_on();
     DR_t32_interrupt_init(0, interrupt_angles);
 
+    /* Poles Luenberger */
+    setPoles_Luen(&luenberger_0, Ts);
     while (1)
     {
 
@@ -374,6 +393,8 @@ void EUSCIA0_IRQHandler(void)
     }
     if (contador == 2)
     { /*Leitura acc e gyroscope*/
+        //Recalcular os polos
+        setPoles_Luen(&luenberger_0, Ts);
 
     }
     if (contador == 3)
