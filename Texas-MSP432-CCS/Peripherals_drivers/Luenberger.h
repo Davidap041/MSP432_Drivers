@@ -18,9 +18,7 @@ typedef struct
     float L2_;
 // The angle should be in degrees and the rate should be in degrees per second and the delta time in seconds
 }Luenberger_data;
-float getAngle_Luen1(Luenberger_data *luenberger, float newAngle, float newRate,
-               float dt);
-float getAngle_Luen2(Luenberger_data *luenberger, float newAngle, float newRate,
+float getAngle_Luen(Luenberger_data *luenberger, float newAngle, float newRate,
                float dt);
 void setPoles_Luen(Luenberger_data *luenberger, float dt);
 

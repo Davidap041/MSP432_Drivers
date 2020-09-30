@@ -64,6 +64,11 @@ typedef struct
 	float mag_offset_y;
 	float mag_offset_z;
 
+	/* Giroscope Calibration Variables*/
+	float gyro_offset_x;
+	float gyro_offset_y;
+	float gyro_offset_z;
+
 	/* Input variables for the Kalman Filter*/
 	float ang_pitch;
 	float ang_gyro;
@@ -85,10 +90,12 @@ extern int DR_mpu6050_readraw(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 								uint8_t byteCount, uint8_t *data);
 extern int DR_mpu6050_read(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 							uint8_t *data);
+extern void DR_Gyroscope_calibrate(dr_mpu_data_t *sensor);
 extern void DR_magnetometer_calibrate(dr_mpu_data_t *sensor);
 extern void initAK8963(float * destination);
 extern int  DR_mpu9250_init(dr_mpu_data_t *sensor);
 extern int DR_mpu9250_atualizar(dr_mpu_data_t *sensor);
+
 
 
 //*****************************************************************************

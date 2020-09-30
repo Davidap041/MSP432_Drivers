@@ -1,6 +1,8 @@
 #ifndef FUNCTIONS_H_
 #define FUNCTIONS_H_
 #include <math.h>
+#include <arm_math.h>
+#include <arm_const_structs.h>
 #include "mpu6050.h"
 // Calibration Parameters for Servo Motor
 // Limits of the PWM signal and corresponding angle values for link Rho
@@ -270,6 +272,7 @@ float getPosition_ServoMotor(dr_pwm_parameters *PWM_link){
 		
 	return Angle_Position;
 }
+
 
 
 //static inline float GetAccPitch(const acc_data_t *Data, int eixo) {

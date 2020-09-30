@@ -209,6 +209,59 @@ int DR_mpu6050_readraw(uint8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 	return 0; /* no error */
 }
 
+void DR_Gyroscope_calibrate(dr_mpu_data_t *sensor)
+{
+    int i = 100;
+    int Max_Value[3];
+    int Min_Value[3];
+
+    DR_mpu9250_atualizar(sensor);
+
+    Max_Value[0] = sensor->gx;
+    Min_Value[0] = sensor->gx;
+    Max_Value[1] = sensor->gy;
+    Min_Value[1] = sensor->gy;
+    Max_Value[2] = sensor->gz;
+    Min_Value[2] = sensor->gz;
+
+    while (i > 0)
+    {
+        DR_mpu9250_atualizar(sensor);
+        // Higher and lower X-axis Value
+        if (sensor->gx > Max_Value[0])
+        {
+            Max_Value[0] = sensor->gx;
+        }
+        if (sensor->gx < Min_Value[0])
+        {
+            Min_Value[0] = sensor->gx;
+        }
+        // Higher and lower Y-axis Value
+        if (sensor->gy > Max_Value[1])
+        {
+            Max_Value[1] = sensor->gy;
+        }
+        if (sensor->gy < Min_Value[1])
+        {
+            Min_Value[1] = sensor->gy;
+        }
+        // Higher and lower Z-axis Value
+        if (sensor->gz > Max_Value[2])
+        {
+            Max_Value[2] = sensor->gz;
+        }
+        if (sensor->gz < Min_Value[2])
+        {
+            Min_Value[2] = sensor->gz;
+        }
+        DR_delay_k(1);
+        i--;
+    }
+    sensor->gyro_offset_x = (Max_Value[0] + Min_Value[0]) / 2; // Offset  x-axis
+    sensor->gyro_offset_y = (Max_Value[1] + Min_Value[1]) / 2; // Offset  y-axis
+    sensor->gyro_offset_z = (Max_Value[2] + Min_Value[2]) / 2; // Offset  z-axis
+}
+
 
 void DR_magnetometer_calibrate(dr_mpu_data_t *sensor){
     int i = 1000;

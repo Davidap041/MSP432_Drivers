@@ -1,29 +1,6 @@
 #include "Luenberger.h"
 
-// The angle should be in degrees and the rate should be in degrees per second and the delta time in seconds
-float getAngle_Luen1(Luenberger_data *luenberger, float newAngle, float newRate,
-                     float dt)
-{
-    // Discrete luenberger filter time update equations - Time Update ("Predict")
-    luenberger->angle_prev = luenberger->angle;
-    // Update xhat - Project the state ahead
-    luenberger->rate = newRate - luenberger->bias;
-    luenberger->angle = (1 - luenberger->L1_) * luenberger->angle_prev
-            + dt * luenberger->rate;
-
-    luenberger->bias = luenberger->bias
-            - luenberger->L2_ * luenberger->angle_prev;
-    // Calculate angle and bias - Update estimate with measurement zk (newAngle)
-    float y = newAngle - luenberger->angle; // Angle difference
-
-    /* Step 6 */
-    luenberger->angle += luenberger->L1_ * y;
-    luenberger->bias += luenberger->L2_ * y;
-
-    return luenberger->angle;
-}
-// de acordo com os slides
-float getAngle_Luen2(Luenberger_data *luenberger, float newAngle, float newRate,
+float getAngle_Luen(Luenberger_data *luenberger, float newAngle, float newRate,
                      float dt)
 {
     // Store previous values
