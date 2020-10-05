@@ -6,10 +6,10 @@
 #include "mpu6050.h"
 // Calibration Parameters for Servo Motor
 // Limits of the PWM signal and corresponding angle values for link Rho
-#define rho_pwm_max 7300.0f
-#define rho_pwm_min 1500.0f
-#define rho_angle_max 1.19693f
-#define rho_angle_min -1.257f
+#define rho_pwm_max 7300.0f         // 7300f
+#define rho_pwm_min 1200.0f         // 1200f
+#define rho_angle_max 1.578f      // 1.19693f
+#define rho_angle_min -1.578f     // -1.257f
 // Limits of the PWM signal and corresponding angle values for link Theta 1
 #define theta1_pwm_max 2000.0f
 #define theta1_pwm_min 4800.0f

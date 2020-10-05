@@ -14,7 +14,8 @@
 
 /* Misc. definitions. */
 #define PI               3.14159265358979f
-
+extern float prbs[13];
+extern float calibration_signal[31];
 // Variables for Luenberger 
 Luenberger_data luenberger_0 = { .pole1 = 0.98f, .pole2 = 0.95f };
 // Instance for Kalman Filter
@@ -25,10 +26,11 @@ Kalman_data kalman_0 = { .Q_angle = 0.001f, .Q_bias = 0.0001f, .R_measure =
 // Defini��o do endere�amento dos 4 sensores
 dr_mpu_data_t sensor_rho = { .identification = 0, .address = 0x68, .I2C = 0, };
 // Config TA0.1
-dr_pwm_parameters PWM_0 = { .timer = TIMER_A0_BASE, .fast_mode = true,
-                            .timer_Prescaler = 64, .timer_Prescaler = 4,
+dr_pwm_parameters PWM_0 = { .identification = 0, .timer = TIMER_A0_BASE,
+                            .fast_mode = true, .timer_Prescaler = 64,
+                            .timer_Prescaler = 4,
                             .true_Sawtooth_not_triangular = true,
-                            .period_count = 60000, .period_count = 60000, //60360 = 50 Hz(fechado, osciloscópio)
+                            .period_count = 60000, //60360 = 50 Hz(fechado, osciloscópio)
                             .pwm_channel = 1, .outputmode =
                             TIMER_A_OUTPUTMODE_RESET_SET };
 
@@ -58,6 +60,8 @@ float32_t ifft_results[WINDOW_LENGTH];
 float32_t eq_sigmoid[WINDOW_LENGTH];
 
 float magnetometer_n_filtrado;
+
+float Duty_Debug_Regulation = 0.0f;
 
 float32_t calculatefft(uint16_t position)
 {
@@ -113,6 +117,19 @@ void DR_aquisition_dados()
         time_aquisition++;
     }
 }
+void Update_Servo_Motor(uint16_t position_table, bool prbs_on)
+{
+    float Duty_Table_Value;
+    if (prbs_on)
+    {
+        Duty_Table_Value = prbs[position_table];
+    }
+    else
+    {
+        Duty_Table_Value = calibration_signal[position_table];
+    }
+    setPosition_ServoMotor(&PWM_0, Duty_Table_Value);
+}
 
 int DR_angles_update(uint16_t n_ensaio)
 {
@@ -136,13 +153,13 @@ int DR_angles_update(uint16_t n_ensaio)
             DR_aquisition_dados();
     }
     if (n_ensaio == 1)
-    {   /*Kalman {Magnetometer + Giroscope}*/
+    { /*Kalman {Magnetometer + Giroscope}*/
         float gyroZ = sensor_rho.gz * 1.3323e-04f; // Gyroscope Z euler angle
         float pitch = magnetometer_n_filtrado; // calculate angle Z from Magnetometer
-        
+
         sensor_rho.ang_pitch = pitch; // Store
         sensor_rho.ang_gyro = gyroZ; // store Z euler angle gyroscope
-        
+
         sensor_rho.ang_Kalman = getAngle(&kalman_0, pitch, gyroZ, Ts);
         sensor_rho.ang_updated = sensor_rho.ang_Kalman;
 
@@ -153,10 +170,10 @@ int DR_angles_update(uint16_t n_ensaio)
         /*Kalman {Magnetometer(w/FSE) + Giroscope}*/
         float gyroZ = sensor_rho.gz * 1.3323e-04f; // Gyroscope Z euler angle
         float pitch = magnetomer_w_FSE; // calculate angle Z from Magnetometer
-        
+
         sensor_rho.ang_pitch = pitch; // Store
         sensor_rho.ang_gyro = gyroZ; // store Z euler angle gyroscope
-        
+
         sensor_rho.ang_Kalman = getAngle(&kalman_0, pitch, gyroZ, Ts);
         sensor_rho.ang_updated = sensor_rho.ang_Kalman;
 
@@ -167,10 +184,10 @@ int DR_angles_update(uint16_t n_ensaio)
         /*Luenberger {Magnetometer + Giroscope}*/
         float gyroZ = sensor_rho.gz * 1.3323e-04f; // Gyroscope Z euler angle
         float pitch = magnetometer_n_filtrado; // calculate angle Z from Magnetometer
-        
+
         sensor_rho.ang_pitch = pitch; // Store
         sensor_rho.ang_gyro = gyroZ; // store Z euler angle gyroscope
-        
+
         sensor_rho.ang_Luenberger = getAngle_Luen(&luenberger_0, pitch, gyroZ,
         Ts);
         sensor_rho.ang_updated = sensor_rho.ang_Luenberger;
@@ -178,28 +195,29 @@ int DR_angles_update(uint16_t n_ensaio)
         return 1;
     }
     if (n_ensaio == 4)
-    {   
+    {
         /* Luenberger {Magnetometer(w/FSE) + Giroscope} */
         float gyroZ = sensor_rho.gz * 1.3323e-04f; // Gyroscope Z euler angle
         float pitch = magnetomer_w_FSE; // calculate angle Z from Magnetometer
-        
+
         sensor_rho.ang_pitch = pitch; // Store
         sensor_rho.ang_gyro = gyroZ; // store Z euler angle gyroscope
-        
+
         sensor_rho.ang_Luenberger = getAngle_Luen(&luenberger_0, pitch, gyroZ,
         Ts);
         sensor_rho.ang_updated = sensor_rho.ang_Luenberger;
 
         return 1;
     }
-    if (n_ensaio == 5){
+    if (n_ensaio == 5)
+    {
         /* Luenberger e Kalman {Magnetometer(w/FSE) + Giroscope} */
         float gyroZ = sensor_rho.gz * 1.3323e-04f; // Gyroscope Z euler angle
         float pitch = magnetomer_w_FSE; // calculate angle Z from Magnetometer
-        
+
         sensor_rho.ang_pitch = pitch; // Store
         sensor_rho.ang_gyro = gyroZ; // store Z euler angle gyroscope
-        
+
         sensor_rho.ang_Luenberger = getAngle_Luen(&luenberger_0, pitch, gyroZ,
         Ts);
         sensor_rho.ang_Kalman = getAngle(&kalman_0, pitch, gyroZ, Ts);
@@ -258,7 +276,7 @@ int main(void)
     /* Inicializar Programas*/
     DR_leds_init();
     DR_uart_init();
-    DR_pwm_init(&PWM_0, 30000);
+    DR_pwm_init(&PWM_0, 4250);
     DR_i2c_init(0);
     DR_t32_init(0);
 
@@ -276,6 +294,9 @@ int main(void)
 
     // Auto Calibração do Magnetômetro
     DR_magnetometer_calibrate(&sensor_rho);
+//    sensor_rho.mag_offset_x = 225;
+//    sensor_rho.mag_offset_y = 294;
+//    sensor_rho.mag_offset_z = 256;
     DR_Gyroscope_calibrate(&sensor_rho);
     Dr_set_RGB_blue;
 
@@ -296,7 +317,7 @@ int main(void)
     setPoles_Luen(&luenberger_0, Ts);
     while (1)
     {
-
+        setPosition_ServoMotor(&PWM_0, Duty_Debug_Regulation);
     }
 }
 
@@ -307,33 +328,37 @@ void EUSCIA0_IRQHandler(void)
     printf("\n\n\r--Ledupdate(%d)", count_RX_Buffer);
     if (count_RX_Buffer == 1)
     { /*Leitura do endereço*/
-        aquisition_Data_Start = 1;
+//        aquisition_Data_Start = 1;
+        Update_Servo_Motor(0, 1);
     }
     if (count_RX_Buffer == 2)
     { /*Leitura acc e gyroscope*/
         //Recalcular os polos
-        setPoles_Luen(&luenberger_0, Ts);
+//        setPoles_Luen(&luenberger_0, Ts);
+        Update_Servo_Motor(1, 1);
 
     }
     if (count_RX_Buffer == 3)
     { /**/
-        uint16_t duty_1 = DR_pwm_getDuty(&PWM_0);
-        uint16_t period_timer_0 = DR_pwm_getPeriod(&PWM_0);
-        if (duty_1 < period_timer_0)
-        {
-            duty_1 += 10000;
-            DR_PWM_setDuty(&PWM_0, duty_1);
-        }
+//        uint16_t duty_1 = DR_pwm_getDuty(&PWM_0);
+//        uint16_t period_timer_0 = DR_pwm_getPeriod(&PWM_0);
+//        if (duty_1 < period_timer_0)
+//        {
+//            duty_1 += 10000;
+//            DR_PWM_setDuty(&PWM_0, duty_1);
+//        }
+        Update_Servo_Motor(2, 1);
 
     }
     if (count_RX_Buffer == 4)
     { /* Leitura Magnetometro data*/
-        uint16_t duty_1 = DR_pwm_getDuty(&PWM_0);
-        if (duty_1 > 0)
-        {
-            duty_1 -= 10000;
-            DR_PWM_setDuty(&PWM_0, duty_1);
-        }
+//        uint16_t duty_1 = DR_pwm_getDuty(&PWM_0);
+//        if (duty_1 > 0)
+//        {
+//            duty_1 -= 10000;
+//            DR_PWM_setDuty(&PWM_0, duty_1);
+//        }
+        Update_Servo_Motor(3, 1);
     }
     if (count_RX_Buffer == 5)
     {
@@ -347,6 +372,12 @@ void EUSCIA0_IRQHandler(void)
         printf("\n\r Pwm_Period0 :%d", period_timer_0);
         printf("\n\r Pwm_freq1 :%.3fHz", DR_pwm_getfreq(&PWM_0));
         printf("\n\r Pwm_duty1 :%.2f%%", DR_pwm_getDuty_percent(&PWM_0));
+        Update_Servo_Motor(4, 1);
+    }
+    if (count_RX_Buffer == 6)
+    {
+        setPosition_ServoMotor(&PWM_0, Duty_Debug_Regulation);
+//        DR_PWM_setDuty(&PWM_0, Duty_Debug_Regulation);
     }
 
 }
