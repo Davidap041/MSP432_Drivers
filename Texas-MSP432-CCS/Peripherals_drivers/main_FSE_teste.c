@@ -14,8 +14,13 @@
 
 /* Misc. definitions. */
 #define PI               3.14159265358979f
+#define TEMPO_ESTABILIZACAO_MOTOR 200
+#define SIZE_VECTOR_SINAIS_MOTOR 13
+
 extern float prbs[13];
 extern float calibration_signal[31];
+extern float ensaio_signals[13];
+
 // Variables for Luenberger 
 Luenberger_data luenberger_0 = { .pole1 = 0.98f, .pole2 = 0.95f };
 // Instance for Kalman Filter
@@ -36,9 +41,12 @@ dr_pwm_parameters PWM_0 = { .identification = 0, .timer = TIMER_A0_BASE,
 
 /* For Debug graph*/
 uint8_t count_RX_Buffer = 1;    // count to tranform from UART
+uint8_t ensaio_rotina = 1;      // contador do ensaio
 
 uint32_t time_aquisition = 0;
 bool aquisition_Data_Start = 0;
+uint16_t contador_wait_motor = 0;
+uint8_t update_position_servo_value = 0;
 
 //  Supported FFT Lengths are 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192.
 #define WINDOW_LENGTH 128
@@ -94,40 +102,46 @@ float32_t calculatefft(uint16_t position)
     return ifft_results[WINDOW_LENGTH - 1];
 }
 
-void DR_aquisition_dados()
+void DR_aquisition_dados(uint16_t n_ensaio)
 {
-    if (time_aquisition == 0)
-    {
-        Dr_clc_RGB_red;
-        Dr_clc_RGB_blue;
-        Dr_set_RGB_green;
+    time_aquisition++;
+    if (n_ensaio == 1)
+    { /* Ensaio 1 :: Kalman {Magnetometer + Giroscope}
+     * 1 - Sinal Magnetometer
+     * 2 - Sinal Giroscope
+     * 3 - Sinal da Fusão  (Kalman Angle)
+     * */
+        printf("\n\r%d %.6f %.6f %.6f ", time_aquisition, sensor_rho.ang_pitch,
+               sensor_rho.ang_gyro, sensor_rho.ang_Kalman);
     }
-
-    printf("\n\r%d %.6f ", time_aquisition, sensor_rho.ang_gyro);
-
-    if (time_aquisition == 6000)
-    {
-        Interrupt_disableInterrupt(INT_T32_INT1);
-        SysTick_disableInterrupt();
-        Dr_clc_RGB_green;
-        Dr_set_RGB_blue;
+    if (n_ensaio == 2)
+    {/*Ensaio 2 :: Kalman {Magnetometer (w/FSE) + Giroscope}
+     * 1 - Sinal Magnetometer (antes FSE)
+     * 2 - Sinal Magnetometer (depois FSE)
+     * 3 - Sinal Giroscope
+     * 4 - Sinal da Fusão (Kalman Angle)*/
+        printf("\n\r%d %.6f %.6f %.6f ", time_aquisition, sensor_rho.ang_pitch,
+               sensor_rho.ang_gyro, sensor_rho.ang_Kalman);
     }
-    else
+    if (n_ensaio == 3)
     {
-        time_aquisition++;
+        printf("\n\r%d %.6f ", time_aquisition, sensor_rho.ang_gyro);
+    }
+    if (n_ensaio == 4)
+    {
+        printf("\n\r%d %.6f ", time_aquisition, sensor_rho.ang_gyro);
+    }
+    if (n_ensaio == 5)
+    {
+        printf("\n\r%d %.6f ", time_aquisition, sensor_rho.ang_gyro);
     }
 }
-void Update_Servo_Motor(uint16_t position_table, bool prbs_on)
+void Update_Servo_Motor(uint16_t position_table)
 {
     float Duty_Table_Value;
-    if (prbs_on)
-    {
-        Duty_Table_Value = prbs[position_table];
-    }
-    else
-    {
-        Duty_Table_Value = calibration_signal[position_table];
-    }
+
+    Duty_Table_Value = ensaio_signals[position_table];
+
     setPosition_ServoMotor(&PWM_0, Duty_Table_Value);
 }
 
@@ -150,7 +164,7 @@ int DR_angles_update(uint16_t n_ensaio)
         sensor_rho.ang_updated = Kal_Angle;
 
         if (aquisition_Data_Start)
-            DR_aquisition_dados();
+            DR_aquisition_dados(0);
     }
     if (n_ensaio == 1)
     { /*Kalman {Magnetometer + Giroscope}*/
@@ -163,6 +177,8 @@ int DR_angles_update(uint16_t n_ensaio)
         sensor_rho.ang_Kalman = getAngle(&kalman_0, pitch, gyroZ, Ts);
         sensor_rho.ang_updated = sensor_rho.ang_Kalman;
 
+        if (aquisition_Data_Start)
+            DR_aquisition_dados(1);
         return 1;
     }
     if (n_ensaio == 2)
@@ -176,6 +192,8 @@ int DR_angles_update(uint16_t n_ensaio)
 
         sensor_rho.ang_Kalman = getAngle(&kalman_0, pitch, gyroZ, Ts);
         sensor_rho.ang_updated = sensor_rho.ang_Kalman;
+        if (aquisition_Data_Start)
+            DR_aquisition_dados(2);
 
         return 1;
     }
@@ -192,6 +210,9 @@ int DR_angles_update(uint16_t n_ensaio)
         Ts);
         sensor_rho.ang_updated = sensor_rho.ang_Luenberger;
 
+        if (aquisition_Data_Start)
+            DR_aquisition_dados(3);
+
         return 1;
     }
     if (n_ensaio == 4)
@@ -207,6 +228,9 @@ int DR_angles_update(uint16_t n_ensaio)
         Ts);
         sensor_rho.ang_updated = sensor_rho.ang_Luenberger;
 
+        if (aquisition_Data_Start)
+            DR_aquisition_dados(4);
+
         return 1;
     }
     if (n_ensaio == 5)
@@ -221,6 +245,11 @@ int DR_angles_update(uint16_t n_ensaio)
         sensor_rho.ang_Luenberger = getAngle_Luen(&luenberger_0, pitch, gyroZ,
         Ts);
         sensor_rho.ang_Kalman = getAngle(&kalman_0, pitch, gyroZ, Ts);
+        sensor_rho.ang_updated = sensor_rho.ang_Kalman;
+
+        if (aquisition_Data_Start)
+            DR_aquisition_dados(5);
+
         return 1;
     }
     else
@@ -230,9 +259,51 @@ int DR_angles_update(uint16_t n_ensaio)
 }
 
 void interrupt_angles()
-{   // Desativar a flag
+{
+// --------------------- Desativar a flag -----------------------------------//
     Timer32_clearInterruptFlag(TIMER32_0_BASE);
     DR_tick_start();
+
+//------------------- Update Servo Motor Value --------------------------------//
+    // Start Aquisition Data
+    if (aquisition_Data_Start)
+    {
+        Dr_clc_RGB_red;
+        Dr_clc_RGB_blue;
+        Dr_set_RGB_green;
+        if (contador_wait_motor >= TEMPO_ESTABILIZACAO_MOTOR)
+        {   // Motor estabilizado e pronto para novo valor
+            contador_wait_motor = 0;
+
+            if (update_position_servo_value >= SIZE_VECTOR_SINAIS_MOTOR)
+            { //Termino de todas as posições do ensaio e inicio do próximo ensaio
+                update_position_servo_value = 0;
+                if (ensaio_rotina <= 5)
+                {
+                    ensaio_rotina++;
+                    time_aquisition = 0;
+                }
+                else
+                {
+                    ensaio_rotina = 1;
+                    aquisition_Data_Start = 0;  // Finalizar Data_Aquisition
+                    Dr_clc_RGB_green;
+                    Dr_set_RGB_blue;
+
+                }
+            }
+            else
+            {   // Update nova posição do motor
+                update_position_servo_value++;
+                Update_Servo_Motor(update_position_servo_value);
+            }
+        }
+        else
+        {
+            contador_wait_motor++;
+        }
+    }
+//------------------- Update Angle Values -------------------------------------//
     DR_mpu9250_atualizar(&sensor_rho);
 
     float MagX = sensor_rho.mx - sensor_rho.mag_offset_x; // Magnetometer X-axis // Testar multiplicar por 0.1
@@ -244,16 +315,18 @@ void interrupt_angles()
         contador_window = 0;
         window_data[contador_window] = magnetometer_n_filtrado; // Magnetometer
         magnetomer_w_FSE = calculatefft(contador_window);
-        DR_angles_update(5);
+        DR_angles_update(ensaio_rotina);
         contador_window++;
     }
     else
     {
         window_data[contador_window] = magnetometer_n_filtrado;
         magnetomer_w_FSE = calculatefft(contador_window);
-        DR_angles_update(5);
+        DR_angles_update(ensaio_rotina);
         contador_window++;
     }
+
+//------------------- Stop Routine -------------------------------------------//
     tempo_processamento = DR_tick_stop(false);
 }
 
@@ -281,8 +354,8 @@ int main(void)
     DR_t32_init(0);
 
     DR_mpu6050_ligar(10); // I'm not using this now!
-    // status_erro = DR_mpu6050_read(sensor_rho.I2C, sensor_rho.address, 0x75, &data) - 10;
-    // // while (data != 0x68);
+// status_erro = DR_mpu6050_read(sensor_rho.I2C, sensor_rho.address, 0x75, &data) - 10;
+// // while (data != 0x68);
 
     uint_fast8_t status_init = 0;
     status_init = DR_mpu9250_init(&sensor_rho);
@@ -292,7 +365,7 @@ int main(void)
         Dr_set_RGB_red;
     }
 
-    // Auto CalibraÃ§Ã£o do MagnetÃ´metro
+// Auto CalibraÃ§Ã£o do MagnetÃ´metro
     DR_magnetometer_calibrate(&sensor_rho);
 //    sensor_rho.mag_offset_x = 225;
 //    sensor_rho.mag_offset_y = 294;
@@ -317,7 +390,6 @@ int main(void)
     setPoles_Luen(&luenberger_0, Ts);
     while (1)
     {
-        setPosition_ServoMotor(&PWM_0, Duty_Debug_Regulation);
     }
 }
 
@@ -327,57 +399,8 @@ void EUSCIA0_IRQHandler(void)
     count_RX_Buffer = UART_receiveData(EUSCI_A0_BASE) - 48;
     printf("\n\n\r--Ledupdate(%d)", count_RX_Buffer);
     if (count_RX_Buffer == 1)
-    { /*Leitura do endereÃ§o*/
-//        aquisition_Data_Start = 1;
-        Update_Servo_Motor(0, 1);
-    }
-    if (count_RX_Buffer == 2)
-    { /*Leitura acc e gyroscope*/
-        //Recalcular os polos
-//        setPoles_Luen(&luenberger_0, Ts);
-        Update_Servo_Motor(1, 1);
-
-    }
-    if (count_RX_Buffer == 3)
-    { /**/
-//        uint16_t duty_1 = DR_pwm_getDuty(&PWM_0);
-//        uint16_t period_timer_0 = DR_pwm_getPeriod(&PWM_0);
-//        if (duty_1 < period_timer_0)
-//        {
-//            duty_1 += 10000;
-//            DR_PWM_setDuty(&PWM_0, duty_1);
-//        }
-        Update_Servo_Motor(2, 1);
-
-    }
-    if (count_RX_Buffer == 4)
-    { /* Leitura Magnetometro data*/
-//        uint16_t duty_1 = DR_pwm_getDuty(&PWM_0);
-//        if (duty_1 > 0)
-//        {
-//            duty_1 -= 10000;
-//            DR_PWM_setDuty(&PWM_0, duty_1);
-//        }
-        Update_Servo_Motor(3, 1);
-    }
-    if (count_RX_Buffer == 5)
     {
-        uint16_t duty_1 = DR_pwm_getDuty(&PWM_0);
-        uint16_t period_timer_0 = DR_pwm_getPeriod(&PWM_0);
-        printf("\n\r CLK_freq :%d", CS_getSMCLK());
-        printf("\n\r Pwm_fast_mode :%x", PWM_0.fast_mode);
-        printf("\n\r Pwm_Prescaler :%d", PWM_0.timer_Prescaler);
-        printf("\n\r Pwm_Sawtooth :%d", PWM_0.true_Sawtooth_not_triangular);
-        printf("\n\r Pwm_Duty1 :%d", duty_1);
-        printf("\n\r Pwm_Period0 :%d", period_timer_0);
-        printf("\n\r Pwm_freq1 :%.3fHz", DR_pwm_getfreq(&PWM_0));
-        printf("\n\r Pwm_duty1 :%.2f%%", DR_pwm_getDuty_percent(&PWM_0));
-        Update_Servo_Motor(4, 1);
-    }
-    if (count_RX_Buffer == 6)
-    {
-        setPosition_ServoMotor(&PWM_0, Duty_Debug_Regulation);
-//        DR_PWM_setDuty(&PWM_0, Duty_Debug_Regulation);
+        aquisition_Data_Start = 1;
     }
 
 }
