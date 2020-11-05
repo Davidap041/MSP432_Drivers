@@ -271,7 +271,7 @@ void DR_magnetometer_calibrate(dr_mpu_data_t *sensor)
     int Max_Value[3];
     int Min_Value[3];
     uint8_t leitura[14];
-    uint16_t div_motor = 62;    // tamanho dos pontos de calibacao dos motores
+    uint16_t div_motor = 62;    // tamanho dO VETOR DE CALIBRAÇÃO dos motores
     float int_motor;
     float cont_motor = 0;
 
@@ -328,7 +328,7 @@ void DR_magnetometer_calibrate(dr_mpu_data_t *sensor)
         param_b = (div_motor - cont_motor - 1) * int_motor;
         if ((i > param_b) && (i < param_a))
         {
-            Update_Servo_Motor(cont_motor, 0);
+            Update_Servo_Motor(cont_motor, 1);
             cont_motor++;
         }
 

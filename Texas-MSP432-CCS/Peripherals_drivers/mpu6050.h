@@ -63,6 +63,8 @@ typedef struct
 	float mag_offset_x;
 	float mag_offset_y;
 	float mag_offset_z;
+	/**/
+	float calibration_offset_mag;
 
 	/* Giroscope Calibration Variables*/
 	float gyro_offset_x;

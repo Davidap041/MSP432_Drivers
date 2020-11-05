@@ -14,11 +14,11 @@
 
 /* Misc. definitions. */
 #define PI               3.14159265358979f
-#define TEMPO_ESTABILIZACAO_MOTOR 200
-#define SIZE_VECTOR_SINAIS_MOTOR 13
+#define TEMPO_ESTABILIZACAO_MOTOR 300
+#define SIZE_VECTOR_SINAIS_MOTOR 5
 
 extern float prbs[13];
-extern float calibration_signal[31];
+extern float calibration_signal[62];
 extern float ensaio_signals[13];
 
 // Variables for Luenberger 
@@ -71,6 +71,12 @@ float magnetometer_n_filtrado;
 
 float Duty_Debug_Regulation = 0.0f;
 
+// Print aquision variables
+int_fast16_t aq_data1[3];
+int_fast16_t aq_data2[4];
+int_fast16_t aq_data3[5];
+int_fast16_t aq_data4[6];
+
 float32_t calculatefft(uint16_t position)
 {
     /* Computer real FFT using the completed data buffer */
@@ -111,36 +117,85 @@ void DR_aquisition_dados(uint16_t n_ensaio)
      * 2 - Sinal Giroscope
      * 3 - Sinal da Fusão  (Kalman Angle)
      * */
-        printf("\n\r%d %.6f %.6f %.6f ", time_aquisition, sensor_rho.ang_pitch,
-               sensor_rho.ang_gyro, sensor_rho.ang_Kalman);
+        aq_data1[0] = 1000 * sensor_rho.ang_pitch;
+        aq_data1[1] = 1000 * sensor_rho.ang_gyro;
+        aq_data1[2] = 1000 * sensor_rho.ang_Kalman;
+        printf("\n\r%d %d %d %d ", time_aquisition, aq_data1[0], aq_data1[1],
+               aq_data1[2]);
     }
     if (n_ensaio == 2)
-    {/*Ensaio 2 :: Kalman {Magnetometer (w/FSE) + Giroscope}
-     * 1 - Sinal Magnetometer (antes FSE)
-     * 2 - Sinal Magnetometer (depois FSE)
-     * 3 - Sinal Giroscope
-     * 4 - Sinal da Fusão (Kalman Angle)*/
-        printf("\n\r%d %.6f %.6f %.6f ", time_aquisition, sensor_rho.ang_pitch,
-               sensor_rho.ang_gyro, sensor_rho.ang_Kalman);
+    {
+        /*Ensaio 2 :: Kalman {Magnetometer (w/FSE) + Giroscope}
+         * 1 - Sinal Magnetometer (antes FSE)   -- magnetometer_n_filtrado
+         * 2 - Sinal Magnetometer (depois FSE)  -- ang_pitch
+         * 3 - Sinal Giroscope                  -- ang_gyro
+         * 4 - Sinal da Fusão (Kalman Angle)    -- ang_Kalman
+         * */
+        aq_data2[0] = 1000 * magnetometer_n_filtrado;
+        aq_data2[1] = 1000 * sensor_rho.ang_pitch;
+        aq_data2[2] = 1000 * sensor_rho.ang_gyro;
+        aq_data2[3] = 1000 * sensor_rho.ang_Kalman;
+
+        printf("\n\r%d %d %d %d %d ", time_aquisition, aq_data2[0], aq_data2[1],
+               aq_data2[2], aq_data2[3]);
     }
     if (n_ensaio == 3)
     {
-        printf("\n\r%d %.6f ", time_aquisition, sensor_rho.ang_gyro);
+        /* Ensaio 3 :: Luenberger {Magnetometer + Giroscope}
+         * 1 - Sinal Magnetometer                   -- sensor_rho.ang_pitch
+         * 2 - Sinal Giroscope                      -- sensor_rho.ang_gyro
+         * 3 - Residuo Observador (Magnetometer)    -- luenberger_0.residue
+         * 4 - Rate Observador (Giroscope)          -- luenberger_0.rate
+         * 5 - Sinal da Fusão (Luenberger Angle)    -- sensor_rho.ang_Luenberger
+         ****/
+        aq_data3[0] = 1000 * sensor_rho.ang_pitch;
+        aq_data3[1] = 1000 * sensor_rho.ang_gyro;
+        aq_data3[2] = 1000 * luenberger_0.residue;
+        aq_data3[3] = 1000 * luenberger_0.rate;
+        aq_data3[4] = 1000 * sensor_rho.ang_Luenberger;
+
+        printf("\n\r%d %d %d %d %d %d ", time_aquisition, aq_data3[0],
+               aq_data3[1], aq_data3[2], aq_data3[3], aq_data3[4]);
     }
     if (n_ensaio == 4)
     {
-        printf("\n\r%d %.6f ", time_aquisition, sensor_rho.ang_gyro);
+        /*
+         * Ensaio 4 :: Luenberger {Magnetometer(w/FSE) + Giroscope}
+         * 1 - Sinal Magnetometer (antes FSE)      -- magnetometer_n_filtrado
+         * 2 - Sinal Magnetometer (depois FSE)     -- sensor_rho.ang_pitch
+         * 3 - Sinal Giroscope                     -- sensor_rho.ang_gyro
+         * 4 - Residuo Observador (Magnetometer)   -- luenberger_0.residue
+         * 5 - Rate Observador (Giroscope)         -- luenberger_0.rate
+         * 6 - Sinal da Fusão (Luenberger Angle)   -- sensor_rho.ang_Luenberger
+         *
+         * */
+        aq_data4[0] = 1000 * magnetometer_n_filtrado;
+        aq_data4[1] = 1000 * sensor_rho.ang_pitch;
+        aq_data4[2] = 1000 * sensor_rho.ang_gyro;
+        aq_data4[3] = 1000 * luenberger_0.residue;
+        aq_data4[4] = 1000 * luenberger_0.rate;
+        aq_data4[5] = 1000 * sensor_rho.ang_Luenberger;
+
+        printf("\n\r%d %d %d %d %d %d %d ", time_aquisition, aq_data4[0],
+               aq_data4[1], aq_data4[2], aq_data4[3], aq_data4[4], aq_data4[5]);
     }
     if (n_ensaio == 5)
     {
         printf("\n\r%d %.6f ", time_aquisition, sensor_rho.ang_gyro);
     }
 }
-void Update_Servo_Motor(uint16_t position_table)
+
+void Update_Servo_Motor(uint16_t position_table, bool prbs_on)
 {
     float Duty_Table_Value;
-
-    Duty_Table_Value = ensaio_signals[position_table];
+    if (prbs_on)
+    {
+        Duty_Table_Value = calibration_signal[position_table];
+    }
+    else
+    {
+        Duty_Table_Value = ensaio_signals[position_table];
+    }
 
     setPosition_ServoMotor(&PWM_0, Duty_Table_Value);
 }
@@ -278,13 +333,15 @@ void interrupt_angles()
             if (update_position_servo_value >= SIZE_VECTOR_SINAIS_MOTOR)
             { //Termino de todas as posições do ensaio e inicio do próximo ensaio
                 update_position_servo_value = 0;
-                if (ensaio_rotina <= 5)
+                if (ensaio_rotina < 4)
                 {
                     ensaio_rotina++;
                     time_aquisition = 0;
                 }
                 else
                 {
+                    printf("\n\r%d %d %d %d %d %d", 1, 1, 1, 1, 1, 1);
+                    printf("\n\r%d %d %d %d %d %d", 1, 1, 1, 1, 1, 1);
                     ensaio_rotina = 1;
                     aquisition_Data_Start = 0;  // Finalizar Data_Aquisition
                     Dr_clc_RGB_green;
@@ -295,7 +352,7 @@ void interrupt_angles()
             else
             {   // Update nova posição do motor
                 update_position_servo_value++;
-                Update_Servo_Motor(update_position_servo_value);
+                Update_Servo_Motor(update_position_servo_value,0);
             }
         }
         else
@@ -367,6 +424,8 @@ int main(void)
 
 // Auto CalibraÃ§Ã£o do MagnetÃ´metro
     DR_magnetometer_calibrate(&sensor_rho);
+    setPosition_ServoMotor(&PWM_0, 0);  // Intial Position in zero
+
 //    sensor_rho.mag_offset_x = 225;
 //    sensor_rho.mag_offset_y = 294;
 //    sensor_rho.mag_offset_z = 256;
