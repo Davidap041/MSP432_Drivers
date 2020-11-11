@@ -15,7 +15,7 @@
 /* Misc. definitions. */
 #define PI               3.14159265358979f
 #define TEMPO_ESTABILIZACAO_MOTOR 300
-#define SIZE_VECTOR_SINAIS_MOTOR 5
+#define SIZE_VECTOR_SINAIS_MOTOR 10
 
 extern float prbs[13];
 extern float calibration_signal[62];
@@ -24,12 +24,13 @@ extern float ensaio_signals[13];
 // Variables for Luenberger 
 Luenberger_data luenberger_0 = { .pole1 = 0.98f, .pole2 = 0.95f };
 // Instance for Kalman Filter
-Kalman_data kalman_0 = { .Q_angle = 0.001f, .Q_bias = 0.0001f, .R_measure =
+Kalman_data kalman_0 = { .Q_angle = 0.01f, .Q_bias = 0.001f, .R_measure =
                                  0.03f,
                          .angle = 0.0f, .bias = 0.0f };
 
 // Definiï¿½ï¿½o do endereï¿½amento dos 4 sensores
-dr_mpu_data_t sensor_rho = { .identification = 0, .address = 0x68, .I2C = 0, };
+dr_mpu_data_t sensor_rho = { .identification = 0, .address = 0x68, .I2C = 0,
+                             .calibration_offset_mag = 0.3 };
 // Config TA0.1
 dr_pwm_parameters PWM_0 = { .identification = 0, .timer = TIMER_A0_BASE,
                             .fast_mode = true, .timer_Prescaler = 64,
@@ -41,7 +42,7 @@ dr_pwm_parameters PWM_0 = { .identification = 0, .timer = TIMER_A0_BASE,
 
 /* For Debug graph*/
 uint8_t count_RX_Buffer = 1;    // count to tranform from UART
-uint8_t ensaio_rotina = 1;      // contador do ensaio
+uint8_t ensaio_rotina = 0;      // contador do ensaio
 
 uint32_t time_aquisition = 0;
 bool aquisition_Data_Start = 0;
@@ -49,14 +50,14 @@ uint16_t contador_wait_motor = 0;
 uint8_t update_position_servo_value = 0;
 
 //  Supported FFT Lengths are 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192.
-#define WINDOW_LENGTH 128
+#define WINDOW_LENGTH 64
 float window_data[WINDOW_LENGTH];
 uint16_t contador_window = 0;
 uint16_t fftSize = WINDOW_LENGTH;
 
 volatile arm_status status;
-float a = -0.1;
-float c = 6;
+float a = -0.9;      //-0.1
+float c = 3; //6
 double tempo_processamento = 0;
 float32_t magnetomer_w_FSE;
 float32_t data_input[WINDOW_LENGTH * 2];
@@ -96,12 +97,12 @@ float32_t calculatefft(uint16_t position)
     arm_rfft_fast_instance_f32 instance;
     status = arm_rfft_fast_init_f32(&instance, fftSize);
     arm_rfft_fast_f32(&instance, data_input, fft_results, ifftFlag);
-
+//    arm_abs_f32(fft_results, fft_results_abs, 64);
     /*Multiplicate for sigmoide*/
     for (k = 0; k < WINDOW_LENGTH; k++)
     {
         fft_w_sigmoid[k] = fft_results[k] * (1 / (1 + expf(-a * (k - c))));
-//        eq_sigmoid[k] = 1 / (1 + expf(-a * (k - c)));
+        eq_sigmoid[k] = 1 / (1 + expf(-a * (k - c)));
     }
     /* Calculate Inverse FFT*/
     arm_rfft_fast_f32(&instance, fft_w_sigmoid, ifft_results, 1);
@@ -111,6 +112,10 @@ float32_t calculatefft(uint16_t position)
 void DR_aquisition_dados(uint16_t n_ensaio)
 {
     time_aquisition++;
+    if (n_ensaio == 0)
+    {
+
+    }
     if (n_ensaio == 1)
     { /* Ensaio 1 :: Kalman {Magnetometer + Giroscope}
      * 1 - Sinal Magnetometer
@@ -194,7 +199,8 @@ void Update_Servo_Motor(uint16_t position_table, bool prbs_on)
     }
     else
     {
-        Duty_Table_Value = ensaio_signals[position_table];
+        Duty_Table_Value = ensaio_signals[position_table]
+                - sensor_rho.calibration_offset_mag;
     }
 
     setPosition_ServoMotor(&PWM_0, Duty_Table_Value);
@@ -204,22 +210,21 @@ int DR_angles_update(uint16_t n_ensaio)
 {
     if (n_ensaio == 0)
     {
-        float accX = sensor_rho.mx - sensor_rho.mag_offset_x; // Magnetometer X-axis // Testar multiplicar por 0.1
-        float accY = sensor_rho.my - sensor_rho.mag_offset_y; // Magnetometer Y-axis // Testar multiplicar por 0.1
-
+        /* Luenberger e Kalman {Magnetometer(w/FSE) + Giroscope} */
         float gyroZ = sensor_rho.gz * 1.3323e-04f; // Gyroscope Z euler angle
+        float pitch = magnetomer_w_FSE; // calculate angle Z from Magnetometer
 
+        sensor_rho.ang_pitch = pitch; // Store
         sensor_rho.ang_gyro = gyroZ; // store Z euler angle gyroscope
 
-        float pitch = atan2f(accY, accX); // calculate angle Z from Magnetometer
-        // -y/x n funcionou
-        sensor_rho.ang_pitch = pitch; // Store
-        // obs test the movement in a 180 degree in relation the angle of calibration
-        float Kal_Angle = getAngle(&kalman_0, pitch, gyroZ, Ts);
-        sensor_rho.ang_updated = Kal_Angle;
-
+        sensor_rho.ang_Luenberger = getAngle_Luen(&luenberger_0, pitch, gyroZ,
+        Ts);
+        sensor_rho.ang_Kalman = getAngle(&kalman_0, pitch, gyroZ, Ts);
+        sensor_rho.ang_updated = sensor_rho.ang_Kalman;
         if (aquisition_Data_Start)
             DR_aquisition_dados(0);
+
+        return 1;
     }
     if (n_ensaio == 1)
     { /*Kalman {Magnetometer + Giroscope}*/
@@ -323,9 +328,15 @@ void interrupt_angles()
     // Start Aquisition Data
     if (aquisition_Data_Start)
     {
+        if (ensaio_rotina == 0)
+        {
+//            ensaio_rotina ++;
+        }
+
         Dr_clc_RGB_red;
         Dr_clc_RGB_blue;
         Dr_set_RGB_green;
+
         if (contador_wait_motor >= TEMPO_ESTABILIZACAO_MOTOR)
         {   // Motor estabilizado e pronto para novo valor
             contador_wait_motor = 0;
@@ -335,7 +346,8 @@ void interrupt_angles()
                 update_position_servo_value = 0;
                 if (ensaio_rotina < 4)
                 {
-                    ensaio_rotina++;
+//                    ensaio_rotina++;
+                    ensaio_rotina = 0;
                     time_aquisition = 0;
                 }
                 else
@@ -352,7 +364,7 @@ void interrupt_angles()
             else
             {   // Update nova posição do motor
                 update_position_servo_value++;
-                Update_Servo_Motor(update_position_servo_value,0);
+                Update_Servo_Motor(update_position_servo_value, 0);
             }
         }
         else
@@ -424,11 +436,16 @@ int main(void)
 
 // Auto CalibraÃ§Ã£o do MagnetÃ´metro
     DR_magnetometer_calibrate(&sensor_rho);
-    setPosition_ServoMotor(&PWM_0, 0);  // Intial Position in zero
 
-//    sensor_rho.mag_offset_x = 225;
-//    sensor_rho.mag_offset_y = 294;
-//    sensor_rho.mag_offset_z = 256;
+    // Offset Calibration Magnetometer
+    setPosition_ServoMotor(&PWM_0, 0);  // Intial Position in zero
+    DR_delay_s(1);
+    DR_mpu9250_atualizar(&sensor_rho);
+    float MagX = sensor_rho.mx - sensor_rho.mag_offset_x;
+    float MagY = sensor_rho.my - sensor_rho.mag_offset_y;
+    sensor_rho.calibration_offset_mag = -atan2f(MagY, MagX);
+
+    // Giroscope Calibration
     DR_Gyroscope_calibrate(&sensor_rho);
     Dr_set_RGB_blue;
 

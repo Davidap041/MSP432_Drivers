@@ -573,7 +573,7 @@ int DR_i2c_readraw(uint_fast8_t n_I2C, uint8_t slaveAddr, uint8_t memAddr,
 		if (byteCount == 1) /* when only one byte of data is left */
 			moduleI2C->CTLW0 |= 0x0004; /* setup to send STOP after the last byte is received */
 
-		while (!(moduleI2C->IFG & 1))
+		while (!(moduleI2C->IFG & 1))   // error here !!
 			; /* wait till data is received */
 		*data++ = moduleI2C->RXBUF; /* read the received data */
 		byteCount--;
