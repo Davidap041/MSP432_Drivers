@@ -30,7 +30,7 @@ Kalman_data kalman_0 = { .Q_angle = 0.01f, .Q_bias = 0.001f, .R_measure =
 
 // Defini��o do endere�amento dos 4 sensores
 dr_mpu_data_t sensor_rho = { .identification = 0, .address = 0x68, .I2C = 0,
-                             .calibration_offset_mag = 0.3 };
+                             .calibration_offset_mag = 0.23 };
 // Config TA0.1
 dr_pwm_parameters PWM_0 = { .identification = 0, .timer = TIMER_A0_BASE,
                             .fast_mode = true, .timer_Prescaler = 64,
@@ -330,7 +330,7 @@ void interrupt_angles()
     {
         if (ensaio_rotina == 0)
         {
-//            ensaio_rotina ++;
+            ensaio_rotina ++;
         }
 
         Dr_clc_RGB_red;
@@ -346,8 +346,8 @@ void interrupt_angles()
                 update_position_servo_value = 0;
                 if (ensaio_rotina < 4)
                 {
-//                    ensaio_rotina++;
-                    ensaio_rotina = 0;
+                    ensaio_rotina++;
+//                    ensaio_rotina = 0;
                     time_aquisition = 0;
                 }
                 else
@@ -441,9 +441,9 @@ int main(void)
     setPosition_ServoMotor(&PWM_0, 0);  // Intial Position in zero
     DR_delay_s(1);
     DR_mpu9250_atualizar(&sensor_rho);
-    float MagX = sensor_rho.mx - sensor_rho.mag_offset_x;
-    float MagY = sensor_rho.my - sensor_rho.mag_offset_y;
-    sensor_rho.calibration_offset_mag = -atan2f(MagY, MagX);
+//    float MagX = sensor_rho.mx - sensor_rho.mag_offset_x;
+//    float MagY = sensor_rho.my - sensor_rho.mag_offset_y;
+//    sensor_rho.calibration_offset_mag = -atan2f(MagY, MagX);
 
     // Giroscope Calibration
     DR_Gyroscope_calibrate(&sensor_rho);
