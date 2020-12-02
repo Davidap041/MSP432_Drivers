@@ -1,35 +1,81 @@
 #ifndef FUNCTIONS_H_
 #define FUNCTIONS_H_
 #include <math.h>
+#include <arm_math.h>
+#include <arm_const_structs.h>
 #include "mpu6050.h"
+// Calibration Parameters for Servo Motor
+// Limits of the PWM signal and corresponding angle values for link Rho
+#define rho_pwm_max 7300.0f         // 7300f
+#define rho_pwm_min 1200.0f         // 1200f
+#define rho_angle_max 1.578f      // 1.19693f
+#define rho_angle_min -1.578f     // -1.257f
+// Limits of the PWM signal and corresponding angle values for link Theta 1
+#define theta1_pwm_max 2000.0f
+#define theta1_pwm_min 4800.0f
+#define theta1_angle_max 1.972f
+#define theta1_angle_min 0.562f
+// Limits of the PWM signal and corresponding angle values for link Theta 2
+#define theta2_pwm_max 5400.0f
+#define theta2_pwm_min 1100.0f
+#define theta2_angle_max 0.961796f
+#define theta2_angle_min 3.142796f
+// Limits of the PWM signal and corresponding angle values for link Theta 3
+#define theta3_pwm_max 1200.0f
+#define theta3_pwm_min 5500.0f
+#define theta3_angle_max 2.510996f
+#define theta3_angle_min 0.11979f
+// Converter PWM(uC) in Angle(rad) for link Rho
+#define motor0_a ((rho_pwm_max - rho_pwm_min) / (rho_angle_max - rho_angle_min))
+#define motor0_b ((rho_angle_max*rho_pwm_min - rho_angle_min*rho_pwm_max)/(rho_angle_max - rho_angle_min))
+// Converter PWM(uC) in Angle(rad) for link Theta 1
+#define motor1_a ((theta1_pwm_max - theta1_pwm_min) / (theta1_angle_max - theta1_angle_min))
+#define motor1_b ((theta1_angle_max*theta1_pwm_min - theta1_angle_min*theta1_pwm_max)/(theta1_angle_max - theta1_angle_min))
+// Converter PWM(uC) in Angle(rad) for link Theta 2
+#define motor2_a ((theta2_pwm_max - theta2_pwm_min) / (theta2_angle_max - theta2_angle_min))
+#define motor2_b ((theta2_angle_max*theta2_pwm_min - theta2_angle_min*theta2_pwm_max)/(theta2_angle_max - theta2_angle_min))
+// Converter PWM(uC) in Angle(rad) for link Theta 3
+#define motor3_a ((theta3_pwm_max - theta3_pwm_min) / (theta3_angle_max - theta3_angle_min))
+#define motor3_b ((theta3_angle_max*theta3_pwm_min - theta3_angle_min*theta3_pwm_max)/(theta3_angle_max - theta3_angle_min))
+// Converter Angle(rad) in PWM(uC) for link Rho
+#define ang_0_a ((rho_angle_max - rho_angle_min) / (rho_pwm_max - rho_pwm_min))
+#define ang_0_b ((rho_pwm_max*rho_angle_min - rho_pwm_min*rho_angle_max)/(rho_pwm_max - rho_pwm_min))
+// Converter Angle(rad) in PWM(uC) for link Theta 1
+#define ang_1_a ((theta1_angle_max - theta1_angle_min) / (theta1_pwm_max - theta1_pwm_min))
+#define ang_1_b ((theta1_pwm_max*theta1_angle_min - theta1_pwm_min*theta1_angle_max)/(theta1_pwm_max - theta1_pwm_min))
+// Converter Angle(rad) in PWM(uC) for link Theta 2
+#define ang_2_a ((theta2_angle_max - theta2_angle_min) / (theta2_pwm_max - theta2_pwm_min))
+#define ang_2_b ((theta2_pwm_max*theta2_angle_min - theta2_pwm_min*theta2_angle_max)/(theta2_pwm_max - theta2_pwm_min))
+// Converter Angle(rad) in PWM(uC) for link Theta 3
+#define ang_3_a ((theta3_angle_max - theta3_angle_min) / (theta3_pwm_max - theta3_pwm_min))
+#define ang_3_b ((theta3_pwm_max*theta3_angle_min - theta3_pwm_min*theta3_angle_max)/(theta3_pwm_max - theta3_pwm_min))
 
-// Parâmetros para estimação de posição do Rho
-#define a0 1.0f
-#define a1 -3.635f
-#define a2 5.683f
-#define a3 -4.721f
-#define a4 2.068f
-#define a5 -0.3792f
+// Parameter to estimate position for motor rho
+#define rho_a0 1.0f
+#define rho_a1 -3.635f
+#define rho_a2 5.683f
+#define rho_a3 -4.721f
+#define rho_a4 2.068f
+#define rho_a5 -0.3792f
 
-#define b0 0.0f
-#define b1 0.01931f
+#define rho_b0 0.0f
+#define rho_b1 0.01931f
 
 #define Ts 0.01f
 
 // Variáveis da Estimação de posição do Elo 1 Ângulo Rho
 // valores Passados de Entrada e Saída atualidos na frequência de 100Hz
 float y_estimado[5], u_estimado[2];
-float ang_motor;
 
 // Parâmetros para as matrizes de Referência
 #define pi 3.1415926f
 #define pi_2 1.570796f
-
+/*Refernce Instance */
 typedef struct
 {
-	float ref_time;
+	float ref_time; /* time */
 
-	float x;
+	float x;		
 	float y;
 	float z;
 
@@ -40,6 +86,7 @@ typedef struct
 
 } Reference_data;
 
+/*Calculate Circle Reference Trajectory */
 void References_Circle(Reference_data *reference)
 {
 	reference->ref_time = reference->ref_time + Ts;
@@ -64,6 +111,7 @@ void References_Circle(Reference_data *reference)
 	reference->z = z;
 }
 
+/*Transform x,y,z from reference in rho,theta1,theta2 e theta3 for reference*/
 void Inverse_Kinematic(Reference_data *reference)
 {
 #define L3 8.0f
@@ -141,7 +189,7 @@ void Inverse_Kinematic(Reference_data *reference)
 	reference->theta3 = theta3;
 
 }
-
+// Estimar Posição recebendo a entrada atual de angulo in 100 Hz!!
 float estimar_posicao_rho(float entrada)
 {
 //    0.01931 z^-1
@@ -160,13 +208,73 @@ float estimar_posicao_rho(float entrada)
 	u_estimado[k - 1] = u_estimado[k];
 	u_estimado[k] = entrada;
 
-	y_estimado[k] = b0 * u_estimado[k] + b1 * u_estimado[k - 1]
-			- a1 * y_estimado[k - 1] - a2 * y_estimado[k - 2]
-			- a3 * y_estimado[k - 3] - a4 * y_estimado[k - 4]
-			- a5 * y_estimado[k - 5];
+	y_estimado[k] = rho_b0 * u_estimado[k] + rho_b1 * u_estimado[k - 1]
+			- rho_a1 * y_estimado[k - 1] - rho_a2 * y_estimado[k - 2]
+			- rho_a3 * y_estimado[k - 3] - rho_a4 * y_estimado[k - 4]
+			- rho_a5 * y_estimado[k - 5];
 
 	return y_estimado[k];
 }
+/*Transform Angle in Pwm and set Servo Position*/
+void setPosition_ServoMotor(dr_pwm_parameters *PWM_link, float ControlSignal){
+	/*Transform PWM for Angle OpenLoop*/
+	float Duty_Value; 
+	switch (PWM_link->identification)
+	{
+	case 0:
+		/*Update Rho_ServoMotor */
+		Duty_Value = motor0_a*ControlSignal + motor0_b; 
+		break;
+	case 1:
+		/*Update Theta1_ServoMotor*/
+		Duty_Value = motor1_a*ControlSignal + motor1_b; 
+		break;
+	case 2:
+		/*Update Theta2_ServoMotor*/
+		Duty_Value = motor2_a*ControlSignal + motor2_b;
+		break;
+	case 3:
+		/*Update Theta3_ServoMotor*/
+		Duty_Value = motor3_a*ControlSignal + motor3_b; 
+		break;
+	default:
+		break;
+	}
+	DR_PWM_setDuty(PWM_link,Duty_Value);
+}
+
+/*Transform Actual Postion of PWM Servo Motor (directly PWM registers) in Angle (rad)*/
+float getPosition_ServoMotor(dr_pwm_parameters *PWM_link){
+	uint16_t PWM_Signal = DR_pwm_getDuty(PWM_link); // Get actual PWM Duty Cycle (directly PWM registers)
+	float Angle_Position; // Servo Motor Angle Corresponding Position in rad
+	
+	switch (PWM_link->identification)
+	{
+	case 0:
+		/*Update Rho_ServoMotor */
+		Angle_Position = ang_0_a*PWM_Signal + ang_0_b; 
+		break;
+	case 1:
+		/*Update Theta1_ServoMotor*/
+		Angle_Position = ang_1_a*PWM_Signal + ang_1_b; 
+		break;
+	case 2:
+		/*Update Theta2_ServoMotor*/
+		Angle_Position = ang_2_a*PWM_Signal + ang_2_b;
+		break;
+	case 3:
+		/*Update Theta3_ServoMotor*/
+		Angle_Position = ang_3_a*PWM_Signal + ang_3_b; 
+		break;
+	default:
+		break;
+	}
+		
+	return Angle_Position;
+}
+
+
+
 //static inline float GetAccPitch(const acc_data_t *Data, int eixo) {
 //
 //	float acc_x = (Data->ax - Data->M_ax) * g * ACC_RESOLUTION;
